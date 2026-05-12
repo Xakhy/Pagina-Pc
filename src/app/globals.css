@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Sans:wght@400;500;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 240 10% 3.9%;
+    --primary: 244 43% 51%; /* #534AB7 - Indigo Tech */
+    --primary-foreground: 0 0% 98%;
+    --card: 0 0% 100%;
+    --border: 240 5% 90%;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --primary: 244 43% 51%;
+    --primary-foreground: 0 0% 100%;
+    --card: 240 10% 6%;
+    --border: 240 5% 15%;
+  }
+}
+
+/* Premium Light Mode Overrides */
+.light .bg-zinc-950, .light .bg-\[\#050506\], .light .bg-\[\#09090b\], .light .bg-\[\#0c0c0e\]\/80 { 
+  background-color: #ffffff !important; 
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+}
+.light .bg-zinc-900\/40, .light .bg-zinc-900\/50, .light .bg-zinc-900 { 
+  background-color: rgba(255, 255, 255, 0.7) !important; 
+}
+.light .text-white { color: #09090b !important; }
+.light hover\:text-white:hover { color: #000000 !important; }
+.light .text-zinc-400, .light .text-zinc-500, .light .text-zinc-600 { color: #52525b !important; }
+.light .border-white\/5, .light .border-white\/10, .light .border-zinc-800 { border-color: #e4e4e7 !important; }
+.light .border-white\/20 { border-color: #d4d4d8 !important; }
+/* Botones inactivos y backgrounds secundarios */
+.light .bg-zinc-950.border-zinc-800 { 
+  background-color: #f4f4f5 !important; 
+}
+.light .hover\:text-white:hover { color: #09090b !important; }
+
+
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'DM Sans', sans-serif;
+  }
+  h1, h2, h3, h4, .font-tech {
+    font-family: 'Rajdhani', sans-serif;
+    @apply font-bold tracking-tight uppercase;
+  }
+}
+
+@layer utilities {
+  .tb-glass {
+    @apply bg-zinc-900/50 backdrop-blur-md border border-white/5;
+  }
+  .price-text {
+    @apply text-emerald-400 font-bold;
+    font-family: 'Rajdhani', sans-serif;
+  }
+  .btn-indigo {
+    @apply bg-[#534AB7] hover:bg-[#4339a7] text-white font-bold transition-all active:scale-95;
+  }
+}
+
+/* Scrollbar minimalista */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #534AB7; border-radius: 10px; }
+
+.tech-grid {
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+.hero-grid {
+  background-image: 
+    radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
+  background-size: 40px 40px;
+}
