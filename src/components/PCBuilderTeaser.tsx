@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { Cpu, ArrowRight, Sparkles, Clock, Zap } from 'lucide-react'
 
 export function PCBuilderTeaser() {
@@ -25,16 +24,14 @@ export function PCBuilderTeaser() {
               <p className="text-zinc-500 text-base leading-relaxed mb-10 max-w-sm font-medium">
                 Sincronización directa con Mercado Libre Perú para obtener los mejores precios y stock real.
               </p>
-              <Button
-                asChild
-                size="lg"
-                className="bg-blue-600 hover:bg-blue-500 font-black h-16 px-10 text-lg shadow-2xl shadow-blue-900/40 rounded-2xl transition-all"
+              {/* Fix: Link directo en vez de Button asChild */}
+              <Link
+                href="/pc-builder"
+                className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-500 font-black h-16 px-10 text-lg shadow-2xl shadow-blue-900/40 rounded-2xl transition-all text-white"
               >
-                <Link href="/pc-builder">
-                  EMPEZAR CONFIGURACIÓN
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </Link>
-              </Button>
+                EMPEZAR CONFIGURACIÓN
+                <ArrowRight className="ml-2 w-4 h-4" />
+              </Link>
             </div>
 
             {/* Right — Feature cards */}

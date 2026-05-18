@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +10,10 @@ import { Sparkles, ShoppingCart, Loader2, Monitor, MousePointer2, Keyboard, Mic2
 import { useCart } from '@/lib/store'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import {
+  resolveProductImageUrl,
+  categoryFallbackImage,
+} from '@/lib/product-images'
 
 const USAGE_OPTIONS = ['Gaming', 'Diseño', 'Estudio']
 const LEVEL_OPTIONS = ['Principiante', 'Intermedio', 'Avanzado']
@@ -26,6 +31,7 @@ const PERIPHERAL_OPTIONS = [
 ]
 
 export default function PCBuilderPage() {
+  const router = useRouter()
   const { addItem } = useCart()
   const [budget, setBudget] = useState(3500)
   const [usage, setUsage] = useState('Gaming')
@@ -57,11 +63,30 @@ export default function PCBuilderPage() {
         body: JSON.stringify({ budget, usage, level, cooling, peripherals, specificCase: pcase }),
       })
       const data = await res.json()
+      if (!res.ok || !Array.isArray(data.build)) {
+        toast.error(
+          typeof data.error === 'string'
+            ? data.error
+            : 'No se pudo generar la build. Revisa la API de IA o vuelve a intentar.'
+        )
+        setResult(null)
+        setShowBuild(false)
+        return
+      }
+      if (data.build.length === 0) {
+        toast.warning(
+          'La IA no encontró componentes en stock. Prueba otro presupuesto o sincroniza el catálogo.'
+        )
+        setShowBuild(false)
+        return
+      }
       setResult(data)
       setShowBuild(true)
       toast.success('¡Optimización de IA completada!')
     } catch (err) {
       toast.error('Error al conectar con el servidor de IA')
+      setResult(null)
+      setShowBuild(false)
     } finally {
       setLoading(false)
     }
@@ -267,7 +292,7 @@ export default function PCBuilderPage() {
                   <span className="text-white font-bold">{usage} • {level}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                   <span className="text-zinc-500">Coste Total MeLi</span>
+                   <span className="text-zinc-500">Coste Total</span>
                    <span className="text-emerald-400 font-bold font-tech">S/ {(result?.total || 0).toLocaleString()}</span>
                 </div>
               </div>
@@ -302,7 +327,7 @@ export default function PCBuilderPage() {
         </div>
 
         {/* Build Detail Grid */}
-        {showBuild && result && (
+        {showBuild && result && Array.isArray(result.build) && result.build.length > 0 && (
           <div className="mt-16 space-y-12 animate-in fade-in slide-in-from-bottom-10 duration-700">
             <div className="flex items-center gap-5 border-b border-zinc-800 pb-8">
                <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-600/20">
@@ -315,13 +340,22 @@ export default function PCBuilderPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {result.build.map(({ product, reason }: any) => (
+              {(result.build as any[]).map(({ product, reason }: any) => (
                 <div key={product.id} className="group bg-zinc-900/50 backdrop-blur-md border border-white/5 rounded-[3rem] overflow-hidden hover:border-indigo-500/50 transition-all shadow-2xl">
                   <div className="aspect-square bg-zinc-950 flex items-center justify-center p-12 border-b border-white/5 relative">
                     <img 
-                      src={product.image_url} 
+                      src={resolveProductImageUrl(
+                        product.name,
+                        product.category,
+                        product.image_url
+                      )}
                       alt={product.name} 
-                      className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-700" 
+                      className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-700"
+                      onError={(e) => {
+                        const el = e.currentTarget
+                        el.onerror = null
+                        el.src = categoryFallbackImage(product.category)
+                      }}
                     />
                     <div className="absolute top-6 right-6">
                        <Badge className="bg-zinc-900/90 text-zinc-500 border-zinc-800 text-[8px] font-black px-2 py-1 uppercase">{product.category}</Badge>
@@ -335,7 +369,20 @@ export default function PCBuilderPage() {
                     <div className="flex items-center justify-between pt-5 border-t border-white/5">
                       <span className="text-xl font-bold text-emerald-400 font-tech">S/ {(product.price || 0).toLocaleString()}</span>
                       <button 
-                        onClick={() => addItem({...product, quantity: 1})}
+                        onClick={() =>
+                          addItem({
+                            id: product.id,
+                            name: product.name,
+                            price: product.price,
+                            quantity: 1,
+                            category: product.category,
+                            image_url: resolveProductImageUrl(
+                              product.name,
+                              product.category,
+                              product.image_url
+                            ),
+                          })
+                        }
                         className="w-11 h-11 rounded-2xl bg-indigo-600/10 text-indigo-400 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all shadow-lg active:scale-90"
                       >
                         <ShoppingCart className="w-5 h-5" />
@@ -349,10 +396,23 @@ export default function PCBuilderPage() {
             <div className="flex flex-col items-center gap-8 pt-12">
                <Button 
                  onClick={() => {
-                   if (!result || !result.build) return;
-                   result.build.forEach(({ product }: any) => addItem({ ...product, quantity: 1 }));
-                   toast.success('¡Configuración completa añadida al carrito!');
-                   router.push('/checkout');
+                   if (!result || !result.build) return
+                   result.build.forEach(({ product }: any) => {
+                     addItem({
+                       id: product.id,
+                       name: product.name,
+                       price: product.price,
+                       quantity: 1,
+                       category: product.category,
+                       image_url: resolveProductImageUrl(
+                         product.name,
+                         product.category,
+                         product.image_url
+                       ),
+                     })
+                   })
+                   toast.success('¡Configuración completa añadida al carrito!')
+                   router.push('/checkout')
                  }}
                  className="h-16 px-20 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-2xl shadow-emerald-600/30 text-xl tracking-widest transition-all hover:scale-105 active:scale-95"
                >

@@ -8,10 +8,14 @@ import { useCart } from '@/lib/store'
 import { toast } from 'sonner'
 import { 
   ShoppingCart, ShieldCheck, Truck, 
-  RotateCcw, Loader2, ChevronRight,
-  Info, Star
+  RotateCcw, Loader2, Info, Star
 } from 'lucide-react'
 import { formatPEN, EXCHANGE_RATE } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
+import {
+  resolveProductImageUrl,
+  categoryFallbackImage,
+} from '@/lib/product-images'
 
 export default function ProductDetailPage() {
   const { id } = useParams()
@@ -19,28 +23,31 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [activeImg, setActiveImg] = useState('')
+  const supabase = createClient()
 
   useEffect(() => {
     async function fetchDetails() {
       try {
-        const res = await fetch(`https://api.mercadolibre.com/items/${id}`)
-        const item = await res.json()
-        const descRes = await fetch(`https://api.mercadolibre.com/items/${id}/description`)
-        const desc = await descRes.json()
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .single()
 
-        setProduct({
-          id: item.id,
-          name: item.title,
-          price: item.price,
-          category: 'Hardware',
-          description: desc.plain_text || 'Sin descripción disponible.',
-          images: item.pictures.map((p: any) => p.url).slice(0, 5),
-          specs: item.attributes.reduce((acc: any, attr: any) => {
-            acc[attr.name] = attr.value_name
-            return acc
-          }, {})
-        })
-        setActiveImg(item.pictures[0].url)
+        if (error) throw error
+
+        if (data) {
+          const main = resolveProductImageUrl(
+            data.name,
+            data.category,
+            data.image_url
+          )
+          setProduct({
+            ...data,
+            images: [main],
+          })
+          setActiveImg(main)
+        }
       } catch (error) {
         console.error(error)
       } finally {
@@ -48,7 +55,7 @@ export default function ProductDetailPage() {
       }
     }
     if (id) fetchDetails()
-  }, [id])
+  }, [id, supabase])
 
   if (loading) {
     return (
@@ -58,7 +65,7 @@ export default function ProductDetailPage() {
     )
   }
 
-  if (!product) return <div>Producto no encontrado</div>
+  if (!product) return <div className="min-h-screen pt-24 text-center text-white">Producto no encontrado</div>
 
   return (
     <div className="min-h-screen pt-24 pb-20 px-4">
@@ -68,19 +75,41 @@ export default function ProductDetailPage() {
           {/* Gallery */}
           <div className="space-y-4">
             <div className="aspect-square bg-zinc-900 rounded-[2.5rem] border border-white/5 p-12 flex items-center justify-center overflow-hidden">
-              <img src={activeImg} alt={product.name} className="max-w-full max-h-full object-contain" />
+              <img
+                src={activeImg}
+                alt={product.name}
+                className="max-w-full max-h-full object-contain"
+                onError={(e) => {
+                  const el = e.currentTarget
+                  el.onerror = null
+                  const fb = categoryFallbackImage(product.category)
+                  el.src = fb
+                  setActiveImg(fb)
+                }}
+              />
             </div>
-            <div className="grid grid-cols-5 gap-4">
-              {product.images.map((img: string) => (
-                <button
-                  key={img}
-                  onClick={() => setActiveImg(img)}
-                  className={`aspect-square rounded-2xl bg-zinc-900 border transition-all p-2 flex items-center justify-center ${activeImg === img ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-white/5'}`}
-                >
-                  <img src={img} alt="thumbnail" className="max-w-full max-h-full object-contain" />
-                </button>
-              ))}
-            </div>
+            {product.images && product.images.length > 1 && (
+              <div className="grid grid-cols-5 gap-4">
+                {product.images.map((img: string) => (
+                  <button
+                    key={img}
+                    onClick={() => setActiveImg(img)}
+                    className={`aspect-square rounded-2xl bg-zinc-900 border transition-all p-2 flex items-center justify-center ${activeImg === img ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-white/5'}`}
+                  >
+                    <img
+                      src={img}
+                      alt="thumbnail"
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => {
+                        const el = e.currentTarget
+                        el.onerror = null
+                        el.src = categoryFallbackImage(product.category)
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Info */}
@@ -111,14 +140,20 @@ export default function ProductDetailPage() {
                     Aprox. US$ {(product.price / EXCHANGE_RATE).toFixed(2)} Referencial
                   </p>
                 </div>
-                <div className="bg-emerald-500/10 text-emerald-500 px-4 py-2 rounded-xl text-xs font-bold">
-                  En Stock
+                <div className={`${product.stock > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'} px-4 py-2 rounded-xl text-xs font-bold`}>
+                  {product.stock > 0 ? `En stock · ${product.stock} uds.` : 'Sin Stock'}
                 </div>
               </div>
 
               <Button
+                disabled={product.stock <= 0}
                 onClick={() => {
-                  addItem({ ...product, quantity: 1, image_url: product.images[0] })
+                  const img = resolveProductImageUrl(
+                    product.name,
+                    product.category,
+                    product.image_url
+                  )
+                  addItem({ ...product, quantity: 1, image_url: img })
                   toast.success('Producto agregado al carrito')
                 }}
                 className="w-full h-16 bg-[#534AB7] hover:bg-[#4339a7] text-white font-black text-lg rounded-2xl shadow-xl shadow-indigo-500/20"
@@ -147,7 +182,7 @@ export default function ProductDetailPage() {
               <h3 className="text-lg font-bold text-white uppercase tracking-tighter flex items-center gap-2">
                 <Info className="w-5 h-5 text-indigo-400" /> Descripción del Producto
               </h3>
-              <div className="text-sm text-zinc-500 leading-relaxed font-medium whitespace-pre-wrap line-clamp-6">
+              <div className="text-sm text-zinc-500 leading-relaxed font-medium whitespace-pre-wrap">
                 {product.description}
               </div>
             </div>
@@ -155,17 +190,19 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Specs Table */}
-        <div className="mt-20">
-          <h3 className="text-2xl font-bold text-white uppercase tracking-tighter mb-8 font-tech">Especificaciones Técnicas</h3>
-          <div className="grid md:grid-cols-2 gap-x-12 gap-y-2">
-            {Object.entries(product.specs).map(([key, value]: any) => (
-              <div key={key} className="flex justify-between py-3 border-b border-white/5">
-                <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">{key}</span>
-                <span className="text-xs font-bold text-zinc-300 uppercase">{value}</span>
-              </div>
-            ))}
+        {product.specs && Object.keys(product.specs).length > 0 && (
+          <div className="mt-20">
+            <h3 className="text-2xl font-bold text-white uppercase tracking-tighter mb-8 font-tech">Especificaciones Técnicas</h3>
+            <div className="grid md:grid-cols-2 gap-x-12 gap-y-2">
+              {Object.entries(product.specs).map(([key, value]: any) => (
+                <div key={key} className="flex justify-between py-3 border-b border-white/5">
+                  <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">{key}</span>
+                  <span className="text-xs font-bold text-zinc-300 uppercase">{value}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

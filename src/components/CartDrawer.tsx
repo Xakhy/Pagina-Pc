@@ -5,8 +5,11 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, Package } from 'lucide-react'
-import Image from 'next/image'
 import Link from 'next/link'
+import {
+  resolveProductImageUrl,
+  categoryFallbackImage,
+} from '@/lib/product-images'
 import { formatPEN, formatUSD } from '@/lib/utils'
 
 export function CartDrawer() {
@@ -40,14 +43,14 @@ export function CartDrawer() {
               <p className="text-gray-400 font-medium">Tu carrito está vacío</p>
               <p className="text-sm text-gray-600 mt-1">Agrega productos para comenzar</p>
             </div>
-            <Button
-              variant="outline"
+            {/* Fix: Link directo en vez de Button asChild */}
+            <Link
+              href="/productos"
               onClick={toggleCart}
-              className="border-violet-500/50 text-violet-400 hover:bg-violet-500/10"
-              asChild
+              className="inline-flex items-center justify-center px-4 py-2 rounded-md border border-violet-500/50 text-violet-400 hover:bg-violet-500/10 text-sm font-medium transition-colors"
             >
-              <Link href="/productos">Ver productos</Link>
-            </Button>
+              Ver productos
+            </Link>
           </div>
         ) : (
           <>
@@ -56,13 +59,14 @@ export function CartDrawer() {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex gap-3 p-3 rounded-xl glass border border-white/5"
+                  className="flex gap-3 p-3 rounded-xl border border-white/5"
                 >
                   <div className="w-16 h-16 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
                     <img
-                      src={item.image_url}
+                      src={resolveProductImageUrl(item.name, item.category, item.image_url)}
                       alt={item.name}
                       className="w-full h-full object-cover"
+                      onError={(e) => { const el = e.currentTarget; el.onerror = null; el.src = categoryFallbackImage(item.category) }}
                     />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -76,24 +80,15 @@ export function CartDrawer() {
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="text-gray-600 hover:text-red-400 transition-colors"
-                    >
+                    <button onClick={() => removeItem(item.id)} className="text-gray-600 hover:text-red-400 transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
                     <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="w-6 h-6 rounded-md bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
-                      >
+                      <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-6 h-6 rounded-md bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
                         <Minus className="w-3 h-3" />
                       </button>
                       <span className="text-sm w-6 text-center font-medium">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="w-6 h-6 rounded-md bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
-                      >
+                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-6 h-6 rounded-md bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
                         <Plus className="w-3 h-3" />
                       </button>
                     </div>
@@ -108,23 +103,18 @@ export function CartDrawer() {
               <div className="flex items-center justify-between">
                 <span className="text-gray-400">Subtotal</span>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-white">
-                    {formatPEN(total)}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {formatUSD(total)}
-                  </p>
+                  <p className="text-2xl font-bold text-white">{formatPEN(total)}</p>
+                  <p className="text-xs text-gray-500">{formatUSD(total)}</p>
                 </div>
               </div>
-              <Button
-                className="w-full bg-violet-600 hover:bg-violet-500 text-white font-semibold h-12 text-base glow-purple transition-all"
-                asChild
+              {/* Fix: Link directo en vez de Button asChild */}
+              <Link
+                href="/checkout"
                 onClick={toggleCart}
+                className="w-full inline-flex items-center justify-center bg-violet-600 hover:bg-violet-500 text-white font-semibold h-12 text-base rounded-md transition-colors"
               >
-                <Link href="/checkout">
-                  Ir al Checkout <ArrowRight className="ml-2 w-4 h-4" />
-                </Link>
-              </Button>
+                Ir al Checkout <ArrowRight className="ml-2 w-4 h-4" />
+              </Link>
               <p className="text-xs text-center text-gray-600">
                 💡 Sin cuenta: el carrito se guarda mientras la pestaña esté abierta
               </p>

@@ -3,6 +3,10 @@
 import { ShoppingCart, Star, Zap, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn, formatPEN, formatUSD, EXCHANGE_RATE } from '@/lib/utils'
+import {
+  resolveProductImageUrl,
+  categoryFallbackImage,
+} from '@/lib/product-images'
 import Link from 'next/link'
 import { useCart } from '@/lib/store'
 import { Button } from '@/components/ui/button'
@@ -14,7 +18,7 @@ type Product = {
   price: number
   category: string
   description: string
-  image_url: string
+  image_url?: string | null
   stock: number
   specs: Record<string, string>
 }
@@ -30,12 +34,17 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    const img = resolveProductImageUrl(
+      product.name,
+      product.category,
+      product.image_url
+    )
     addItem({
       id: product.id,
       name: product.name,
       price: product.price,
       quantity: 1,
-      image_url: product.image_url,
+      image_url: img,
       category: product.category,
     })
     toast.success(`${product.name} agregado`)
@@ -52,21 +61,39 @@ export function ProductCard({ product, className }: ProductCardProps) {
       {/* Image Container - Forced Square */}
       <div className="relative aspect-square overflow-hidden bg-[#0a0a0c] flex items-center justify-center p-8 border-b border-white/5">
         <img
-          src={product.image_url}
+          src={resolveProductImageUrl(
+            product.name,
+            product.category,
+            product.image_url
+          )}
           alt={product.name}
           className="max-w-full max-h-full object-contain transition-transform duration-700 group-hover:scale-110"
+          onError={(e) => {
+            const el = e.currentTarget
+            el.onerror = null
+            el.src = categoryFallbackImage(product.category)
+          }}
         />
         <div className="absolute inset-0 bg-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className="absolute top-4 left-4">
-           <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 text-[9px] font-black uppercase px-2.5 py-1 rounded-md">
-              MeLi Perú
-           </Badge>
+          <Badge
+            className={cn(
+              'text-[9px] font-black uppercase px-2.5 py-1 rounded-md border',
+              product.stock > 5
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                : product.stock > 0
+                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                  : 'bg-red-500/10 text-red-400 border-red-500/20'
+            )}
+          >
+            Stock: {product.stock}
+          </Badge>
         </div>
         <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all">
-           <div className="bg-indigo-600 text-white text-[9px] font-black py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-2xl shadow-indigo-600/40 uppercase tracking-widest">
-              <Eye className="w-3.5 h-3.5" />
-              Especificaciones
-           </div>
+          <div className="bg-indigo-600 text-white text-[9px] font-black py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-2xl shadow-indigo-600/40 uppercase tracking-widest">
+            <Eye className="w-3.5 h-3.5" />
+            Especificaciones
+          </div>
         </div>
       </div>
 
@@ -88,7 +115,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
               {formatPEN(product.price)}
             </p>
             <p className="text-[9px] text-zinc-600 font-bold mt-1.5 uppercase tracking-tighter">
-               US$ {(product.price / EXCHANGE_RATE).toFixed(2)}
+              US$ {(product.price / EXCHANGE_RATE).toFixed(2)}
             </p>
           </div>
           <Button

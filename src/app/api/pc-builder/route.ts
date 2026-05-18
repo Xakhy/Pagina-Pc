@@ -1,86 +1,276 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
+import { createClient } from '@/lib/supabase/server'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+type Suggestion = {
+    category: string
+    store_product_id: string
+    reason: string
+}
+
+const REQUIRED = ['cpu', 'gpu', 'ram', 'motherboard', 'storage', 'psu', 'case']
+
+const CATEGORY_MAP: Record<string, string[]> = {
+    cpu: ['procesadores'],
+    gpu: ['tarjetas de video'],
+    ram: ['memorias ram'],
+    motherboard: ['placas madre'],
+    storage: ['almacenamiento'],
+    psu: ['fuentes de poder'],
+    case: ['cases & chasis'],
+}
+
+const normalize = (t: string) => t.toLowerCase()
+
+// 🧠 detectar plataforma
+function detectPlatform(cpuName: string) {
+    const name = cpuName.toLowerCase()
+    if (name.includes('ryzen') || name.includes('amd')) return 'amd'
+    return 'intel'
+}
+
+// ⚖️ evitar bottleneck simple
+function isBalanced(cpu: any, gpu: any) {
+    const cpuHigh = cpu.price > 1500
+    const gpuHigh = gpu.price > 2000
+
+    if (gpuHigh && !cpuHigh) return false // GPU muy fuerte + CPU débil
+    return true
+}
+
+// 🔥 fallback inteligente real
+function fallbackBuild(products: any[], budget: number) {
+    const safe = products ?? []
+    let remaining = budget
+    const build: any[] = []
+
+    // orden de prioridad real
+    for (const part of REQUIRED) {
+        const cats = CATEGORY_MAP[part]
+
+        const options = safe
+            .filter(p =>
+                cats?.some(c =>
+                    normalize(p.category).includes(c)
+                )
+            )
+            .sort((a, b) => a.price - b.price)
+
+        const selected =
+            options.find(p => p.price <= remaining) || options[0]
+
+        if (selected) {
+            build.push({
+                category: part,
+                reason: 'Fallback inteligente',
+                product: selected,
+            })
+
+            remaining -= selected.price
+        }
+    }
+
+    return { build, remaining }
+}
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const { budget, usage, level, cooling, peripherals, specificCase } = body
+    try {
+        const supabase = createClient()
 
-    const prompt = `Eres un experto en hardware PC para el mercado peruano. El usuario quiere armar una PC:
-- Presupuesto máximo: S/ ${budget} Soles
-- Uso: ${usage}
-- Nivel: ${level}
-- Refrigeración: ${cooling}
-- Periféricos: ${peripherals.join(', ')}
-- Case: ${specificCase}
+        const {
+            budget,
+            usage,
+            level,
+            cooling,
+            peripherals = [],
+        } = await req.json()
 
-Sugiere una lista de 8 componentes exactos. 
-IMPORTANTE: Para cada uno, proporciona un "search_term" que incluya MARCA y MODELO EXACTO (ej: "Memoria RAM DDR5 G.Skill Trident Z5 RGB 32GB" en lugar de solo "RAM DDR5"). 
-Esto es crítico para que la imagen coincida con la descripción.
+        const budgetNum = Number(budget)
 
-Responde ÚNICAMENTE con un JSON:
+        const { data: products = [], error } = await supabase
+            .from('products')
+            .select('*')
+            .gt('stock', 0)
+
+        if (error) throw new Error(error.message)
+
+        const safe = products ?? []
+
+        // 🧠 IA SOLO DECIDE ESTRATEGIA
+        const prompt = `
+Eres experto en hardware.
+
+Reglas:
+- NO inventes productos
+- SOLO usa IDs del JSON
+- Debes ser coherente con presupuesto
+- Debes evitar incompatibilidades
+
+Usuario:
+- ${budgetNum}
+- ${usage}
+- ${level}
+
+Productos:
+${JSON.stringify(safe)}
+
+Devuelve JSON:
 {
-  "suggestions": [
-    { "category": "RAM", "search_term": "G.Skill Trident Z5 RGB DDR5 32GB", "reason": "Alta velocidad y latencia baja para gaming" },
-    ...
-  ],
-  "summary": "...",
-  "tips": ["..."]
-}`
+  "suggestions":[
+    {
+      "category":"cpu",
+      "store_product_id":"id",
+      "reason":""
+    }
+  ]
+}
+`
 
-    const message = await client.messages.create({
-      model: 'claude-3-5-sonnet-20240620',
-      max_tokens: 1500,
-      messages: [{ role: 'user', content: prompt }],
-    })
+        const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        temperature: 0.3,
+                        maxOutputTokens: 1200,
+                    },
+                }),
+            }
+        )
 
-    const content = message.content[0]
-    if (content.type !== 'text') throw new Error('IA Error')
+        const json = await res.json()
 
-    const jsonMatch = content.text.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error('JSON not found')
-    const result = JSON.parse(jsonMatch[0])
+        const text =
+            json?.candidates?.[0]?.content?.parts?.[0]?.text
 
-    // Fetch real products from MeLi for each suggestion
-    const enrichedBuild = await Promise.all(result.suggestions.map(async (s: any) => {
-      try {
-        // Buscamos con el término exacto para asegurar que la imagen sea la correcta
-        const res = await fetch(`https://api.mercadolibre.com/sites/MPE/search?q=${encodeURIComponent(s.search_term)}&limit=5`)
-        const data = await res.json()
-        
-        // Intentamos encontrar el mejor match (que contenga las palabras clave)
-        const bestMatch = data.results.find((item: any) => 
-          item.title.toLowerCase().includes(s.search_term.split(' ')[0].toLowerCase())
-        ) || data.results[0]
+        if (!text) {
+            const fb = fallbackBuild(safe, budgetNum)
 
-        if (!bestMatch) return null
-        
-        return {
-          reason: s.reason,
-          product: {
-            id: bestMatch.id,
-            name: bestMatch.title,
-            price: bestMatch.price,
-            image_url: bestMatch.thumbnail.replace('-I.jpg', '-W.jpg'),
-            category: s.category
-          }
+            return NextResponse.json({
+                build: fb.build,
+                total: fb.build.reduce(
+                    (a, b) => a + b.product.price,
+                    0
+                ),
+                remainingBudget: fb.remaining,
+                summary: 'Fallback automático',
+                tips: [],
+            })
         }
-      } catch { return null }
-    }))
 
-    const finalBuild = enrichedBuild.filter(Boolean)
-    const total = finalBuild.reduce((acc, item: any) => acc + item.product.price, 0)
+        let result: { suggestions?: Suggestion[] } = {}
 
-    return NextResponse.json({
-      build: finalBuild,
-      total: total,
-      summary: result.summary,
-      tips: result.tips || [],
-    })
-  } catch (error) {
-    console.error('PC Builder error:', error)
-    return NextResponse.json({ error: 'IA Build Error' }, { status: 500 })
-  }
+        try {
+            result = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || '{}')
+        } catch {
+            result = { suggestions: [] }
+        }
+
+        let remaining = budgetNum
+        const build: any[] = []
+
+        let cpu: any = null
+        let gpu: any = null
+
+        // 🔥 1. CPU primero
+        const cpuS = result.suggestions?.find(s => s.category === 'cpu')
+        cpu = safe.find(p => p.id === cpuS?.store_product_id)
+
+        if (!cpu) {
+            cpu = safe
+                .filter(p =>
+                    p.category.toLowerCase().includes('procesadores')
+                )
+                .sort((a, b) => a.price - b.price)[0]
+        }
+
+        if (cpu) {
+            build.push({ category: 'cpu', product: cpu })
+            remaining -= cpu.price
+        }
+
+        // 🔥 2. GPU con control de presupuesto
+        const gpuS = result.suggestions?.find(s => s.category === 'gpu')
+        gpu = safe.find(p => p.id === gpuS?.store_product_id)
+
+        if (!gpu) {
+            gpu = safe
+                .filter(p =>
+                    p.category.toLowerCase().includes('video')
+                )
+                .sort((a, b) => a.price - b.price)[0]
+        }
+
+        if (gpu && gpu.price <= remaining) {
+            if (cpu && !isBalanced(cpu, gpu)) {
+                gpu = safe
+                    .filter(p =>
+                        p.category.toLowerCase().includes('video')
+                    )
+                    .sort((a, b) => a.price - b.price)[0]
+            }
+
+            build.push({ category: 'gpu', product: gpu })
+            remaining -= gpu.price
+        }
+
+        // 🔥 3. resto normal
+        for (const part of ['ram', 'motherboard', 'storage', 'psu', 'case']) {
+            const cats = CATEGORY_MAP[part]
+
+            const product = safe
+                .filter(p =>
+                    cats?.some(c =>
+                        p.category.toLowerCase().includes(c)
+                    )
+                )
+                .sort((a, b) => a.price - b.price)
+                .find(p => p.price <= remaining)
+
+            if (product) {
+                build.push({ category: part, product })
+                remaining -= product.price
+            }
+        }
+
+        // 🔥 4. periféricos
+        for (const per of peripherals) {
+            const match = safe
+                .filter(p =>
+                    p.category.toLowerCase().includes(per)
+                )
+                .find(p => p.price <= remaining)
+
+            if (match) {
+                build.push({ category: per, product: match })
+                remaining -= match.price
+            }
+        }
+
+        const total = build.reduce(
+            (a, b) => a + b.product.price,
+            0
+        )
+
+        return NextResponse.json({
+            build,
+            total,
+            remainingBudget: remaining,
+            summary: 'Build optimizada con control de compatibilidad',
+            tips: [],
+        })
+    } catch (err) {
+        return NextResponse.json(
+            {
+                error: 'PC Builder error',
+                detail:
+                    err instanceof Error
+                        ? err.message
+                        : 'unknown',
+            },
+            { status: 500 }
+        )
+    }
 }

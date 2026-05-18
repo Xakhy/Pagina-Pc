@@ -1,15 +1,18 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
+import { useCart } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Sparkles, Cpu, ShoppingCart, Loader2, CheckCircle2, ChevronRight, Eye, Monitor, MousePointer2, Keyboard, Mic2, Square } from 'lucide-react'
-import { formatPEN } from '@/lib/utils'
-import { useCart } from '@/lib/store'
-import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import { Sparkles, Cpu, ShoppingCart, Loader2, Monitor, MousePointer2, Keyboard, Mic2, Square } from 'lucide-react'
+import { formatPEN, cn } from '@/lib/utils'
+import {
+  resolveProductImageUrl,
+  categoryFallbackImage,
+} from '@/lib/product-images'
 
 const USAGE_OPTIONS = ['Gaming', 'Diseño', 'Estudio']
 const LEVEL_OPTIONS = ['Principiante', 'Intermedio']
@@ -32,7 +35,7 @@ export function PCBuilderHomeBlock() {
   const [cooling, setCooling] = useState('Aire')
   const [pcase, setPcase] = useState('La IA elige')
   const [peripherals, setPeripherals] = useState<string[]>([])
-  
+
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [showBuild, setShowBuild] = useState(false)
@@ -70,7 +73,7 @@ export function PCBuilderHomeBlock() {
         name: product.name,
         price: product.price,
         quantity: 1,
-        image_url: product.image_url,
+        image_url: resolveProductImageUrl(product.name, product.category, product.image_url),
         category: product.category,
       })
     })
@@ -104,18 +107,18 @@ export function PCBuilderHomeBlock() {
                       max={20000}
                       step={100}
                       value={[budget]}
-                      onValueChange={([v]) => setBudget(v)}
+                      onValueChange={(val) => setBudget(Array.isArray(val) ? val[0] : val)}
                       className="py-4"
                     />
                   </div>
-                  <Input 
-                    type="number" 
-                    value={budget} 
+                  <Input
+                    type="number"
+                    value={budget}
                     onChange={(e) => setBudget(Number(e.target.value))}
-                    className="w-28 bg-zinc-900 border-zinc-800 text-indigo-400 font-bold font-tech text-center"
+                    className="w-28 bg-zinc-900 border-zinc-800 text-indigo-400 font-bold text-center"
                   />
                 </div>
-                <div className="text-sm font-bold text-indigo-400 font-tech">S/ {budget.toLocaleString('es-PE')}</div>
+                <div className="text-sm font-bold text-indigo-400">S/ {budget.toLocaleString('es-PE')}</div>
               </div>
 
               {/* Usage */}
@@ -123,14 +126,10 @@ export function PCBuilderHomeBlock() {
                 <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest block">¿Para qué lo usas?</label>
                 <div className="flex flex-wrap gap-2">
                   {USAGE_OPTIONS.map(opt => (
-                    <button
-                      key={opt}
-                      onClick={() => setUsage(opt)}
-                      className={cn(
-                        "px-5 py-2.5 rounded-xl text-xs font-bold transition-all border",
-                        usage === opt ? "bg-indigo-50 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
-                      )}
-                    >
+                    <button key={opt} onClick={() => setUsage(opt)}
+                      className={cn("px-5 py-2.5 rounded-xl text-xs font-bold transition-all border",
+                        usage === opt ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                      )}>
                       {opt}
                     </button>
                   ))}
@@ -142,14 +141,10 @@ export function PCBuilderHomeBlock() {
                 <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest block">Nivel</label>
                 <div className="flex flex-wrap gap-2">
                   {LEVEL_OPTIONS.map(opt => (
-                    <button
-                      key={opt}
-                      onClick={() => setLevel(opt)}
-                      className={cn(
-                        "px-5 py-2.5 rounded-xl text-xs font-bold transition-all border",
-                        level === opt ? "bg-indigo-50 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
-                      )}
-                    >
+                    <button key={opt} onClick={() => setLevel(opt)}
+                      className={cn("px-5 py-2.5 rounded-xl text-xs font-bold transition-all border",
+                        level === opt ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                      )}>
                       {opt}
                     </button>
                   ))}
@@ -161,14 +156,10 @@ export function PCBuilderHomeBlock() {
                 <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest block">Refrigeración</label>
                 <div className="flex flex-wrap gap-2">
                   {COOLING_OPTIONS.map(opt => (
-                    <button
-                      key={opt}
-                      onClick={() => setCooling(opt)}
-                      className={cn(
-                        "px-5 py-2.5 rounded-xl text-xs font-bold transition-all border",
-                        cooling === opt ? "bg-indigo-50 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
-                      )}
-                    >
+                    <button key={opt} onClick={() => setCooling(opt)}
+                      className={cn("px-5 py-2.5 rounded-xl text-xs font-bold transition-all border",
+                        cooling === opt ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                      )}>
                       {opt}
                     </button>
                   ))}
@@ -183,14 +174,10 @@ export function PCBuilderHomeBlock() {
                 <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest block">Case (Opcional — deja vacío para que la IA elija)</label>
                 <div className="flex flex-wrap gap-2">
                   {CASE_OPTIONS.map(opt => (
-                    <button
-                      key={opt}
-                      onClick={() => setPcase(opt)}
-                      className={cn(
-                        "px-4 py-2 rounded-full text-[10px] font-bold uppercase transition-all border",
-                        pcase === opt ? "bg-indigo-100 border-indigo-300 text-indigo-700" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white"
-                      )}
-                    >
+                    <button key={opt} onClick={() => setPcase(opt)}
+                      className={cn("px-4 py-2 rounded-full text-[10px] font-bold uppercase transition-all border",
+                        pcase === opt ? "bg-indigo-600 border-indigo-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white"
+                      )}>
                       {opt}
                     </button>
                   ))}
@@ -203,14 +190,10 @@ export function PCBuilderHomeBlock() {
                 <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest block">Periféricos adicionales</label>
                 <div className="flex flex-wrap gap-2">
                   {PERIPHERAL_OPTIONS.map(opt => (
-                    <button
-                      key={opt.name}
-                      onClick={() => togglePeripheral(opt.name)}
-                      className={cn(
-                        "px-4 py-2 rounded-full text-[10px] font-bold uppercase transition-all border flex items-center gap-2",
-                        peripherals.includes(opt.name) ? "bg-indigo-100 border-indigo-300 text-indigo-700" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white"
-                      )}
-                    >
+                    <button key={opt.name} onClick={() => togglePeripheral(opt.name)}
+                      className={cn("px-4 py-2 rounded-full text-[10px] font-bold uppercase transition-all border flex items-center gap-2",
+                        peripherals.includes(opt.name) ? "bg-indigo-600 border-indigo-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white"
+                      )}>
                       <opt.icon className="w-3 h-3" />
                       {opt.name}
                     </button>
@@ -224,23 +207,17 @@ export function PCBuilderHomeBlock() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-8 pt-8 border-t border-zinc-800">
             <div>
               <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Estimado IA:</div>
-              <div className="text-xl font-bold text-white font-tech leading-tight">
+              <div className="text-xl font-bold text-white leading-tight">
                 {result ? `S/ ${result.total.toLocaleString('es-PE')}` : "S/ 0.00"} — {result?.build?.length || 0} componentes compatibles
               </div>
             </div>
             <div className="flex gap-4 w-full md:w-auto">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowBuild(!showBuild)}
-                className="flex-1 md:flex-none h-14 px-8 border-zinc-800 text-zinc-400 hover:text-white font-bold rounded-xl"
-              >
+              <Button variant="outline" onClick={() => setShowBuild(!showBuild)}
+                className="flex-1 md:flex-none h-14 px-8 border-zinc-800 text-zinc-400 hover:text-white font-bold rounded-xl">
                 Ver build
               </Button>
-              <Button 
-                onClick={handleGenerate} 
-                disabled={loading}
-                className="flex-1 md:flex-none h-14 px-10 bg-[#534AB7] hover:bg-[#4339a7] text-white font-bold rounded-xl shadow-xl shadow-indigo-500/20"
-              >
+              <Button onClick={handleGenerate} disabled={loading}
+                className="flex-1 md:flex-none h-14 px-10 bg-[#534AB7] hover:bg-[#4339a7] text-white font-bold rounded-xl shadow-xl shadow-indigo-500/20">
                 {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <><Sparkles className="w-5 h-5 mr-2" /> GENERAR CON IA</>}
               </Button>
             </div>
@@ -253,7 +230,12 @@ export function PCBuilderHomeBlock() {
                 {result.build.map(({ product, reason }: any) => (
                   <div key={product.id} className="bg-zinc-950 p-5 rounded-2xl border border-white/5 flex flex-col gap-4 group hover:border-indigo-500/30 transition-all">
                     <div className="h-28 flex items-center justify-center p-3 bg-zinc-900 rounded-xl">
-                      <img src={product.image_url} alt={product.name} className="max-h-full object-contain group-hover:scale-110 transition-transform" />
+                      <img
+                        src={resolveProductImageUrl(product.name, product.category, product.image_url)}
+                        alt={product.name}
+                        className="max-h-full object-contain group-hover:scale-110 transition-transform"
+                        onError={(e) => { const el = e.currentTarget; el.onerror = null; el.src = categoryFallbackImage(product.category) }}
+                      />
                     </div>
                     <div className="flex-1">
                       <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">{product.category}</p>
@@ -261,9 +243,9 @@ export function PCBuilderHomeBlock() {
                       <p className="text-[10px] text-zinc-600 italic leading-tight">{reason}</p>
                     </div>
                     <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                      <span className="text-sm font-bold text-emerald-400 font-tech">S/ {product.price.toLocaleString('es-PE')}</span>
-                      <button 
-                        onClick={() => addItem({...product, quantity: 1})}
+                      <span className="text-sm font-bold text-emerald-400">{formatPEN(product.price)}</span>
+                      <button
+                        onClick={() => addItem({ id: product.id, name: product.name, price: product.price, quantity: 1, category: product.category, image_url: resolveProductImageUrl(product.name, product.category, product.image_url) })}
                         className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center hover:bg-indigo-500 hover:text-white transition-all"
                       >
                         <ShoppingCart className="w-4 h-4" />

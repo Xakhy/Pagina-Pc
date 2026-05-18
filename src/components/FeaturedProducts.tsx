@@ -1,45 +1,38 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { searchMeLiProducts, MeLiProduct } from '@/lib/mercadolibre'
 import { ProductCard } from './ProductCard'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { ArrowRight, Loader2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 export function FeaturedProducts() {
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const supabase = createClient()
 
   useEffect(() => {
     async function fetchProducts() {
       setLoading(true)
       try {
-        const response = await fetch('/api/products/search?q=hardware%20gamer&limit=8')
-        const data = await response.json()
-        
-        if (data.results && data.results.length > 0) {
-          setProducts(data.results.map((item: any) => ({
-            id: item.id,
-            name: item.title,
-            price: item.price,
-            category: 'Hardware',
-            description: 'Producto verificado de Mercado Libre Perú',
-            image_url: item.thumbnail.replace('-I.jpg', '-W.jpg'),
-            stock: 10,
-            specs: { Condición: item.condition === 'new' ? 'Nuevo' : 'Usado' }
-          })))
-        } else {
-          console.warn('No products found in MeLi search')
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('is_featured', true)
+          .limit(16)
+
+        if (error) throw error
+
+        if (data) {
+          setProducts(data)
         }
       } catch (error) {
-        console.error('Error fetching products:', error)
+        console.error('Error fetching featured products:', error)
       } finally {
         setLoading(false)
       }
     }
     fetchProducts()
-  }, [])
+  }, [supabase])
 
   return (
     <section className="py-20">
@@ -54,7 +47,7 @@ export function FeaturedProducts() {
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, i) => (
+          {[...Array(16)].map((_, i) => (
             <div key={i} className="h-64 bg-zinc-900 animate-pulse rounded-2xl border border-white/5" />
           ))}
         </div>

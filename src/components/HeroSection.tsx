@@ -33,12 +33,12 @@ export function HeroSection() {
             </div>
 
             <h1 className="text-5xl md:text-7xl font-bold text-foreground dark:text-white mb-6 leading-[1.05] tracking-tight uppercase" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-              Arma tu PC<br/>
+              Arma tu PC<br />
               <span className="text-[#7F77DD]">sin complicaciones</span>
             </h1>
 
             <p className="text-zinc-500 text-lg max-w-lg mb-10 leading-relaxed font-medium">
-              Componentes de alta gama para gaming, diseño y trabajo. 
+              Componentes de alta gama para gaming, diseño y trabajo.
               La IA te recomienda la build perfecta según tu presupuesto.
             </p>
 

@@ -1,6 +1,5 @@
 import jsPDF from 'jspdf'
 import { CartItem } from './supabase'
-import { formatPEN, EXCHANGE_RATE } from './utils'
 
 interface VoucherData {
   orderId: string
@@ -10,6 +9,16 @@ interface VoucherData {
   items: CartItem[]
   total: number
   date: string
+  /** Ej. Tarjeta | Transferencia | Contra entrega */
+  paymentMethod?: string
+  /** Ej. Yape, BCP, etc. */
+  paymentDetail?: string
+}
+
+function penText(amount: number) {
+  const n = Number(amount)
+  if (!Number.isFinite(n)) return 'S/ 0'
+  return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 }
 
 export function generateVoucherPDF(data: VoucherData) {
@@ -53,7 +62,7 @@ export function generateVoucherPDF(data: VoucherData) {
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(8)
   doc.setFont('helvetica', 'bold')
-  doc.text('✓ CONFIRMADO', margin + 3, 59)
+  doc.text('CONFIRMADO', margin + 6, 59)
 
   doc.setTextColor(156, 163, 175)
   doc.setFontSize(8)
@@ -123,11 +132,11 @@ export function generateVoucherPDF(data: VoucherData) {
     doc.setTextColor(156, 163, 175)
     doc.text(item.category, margin + 90, y + 6)
     doc.text(item.quantity.toString(), margin + 124, y + 6)
-    doc.text(formatPEN(item.price).replace('S/ ', ''), margin + 140, y + 6)
+    doc.text(penText(item.price), margin + 140, y + 6)
 
     doc.setTextColor(167, 139, 250)
     doc.setFont('helvetica', 'bold')
-    doc.text(formatPEN(item.price * item.quantity).replace('S/ ', ''), W - margin - 3, y + 6, { align: 'right' })
+    doc.text(penText(item.price * item.quantity), W - margin - 3, y + 6, { align: 'right' })
 
     y += 9
   })
@@ -144,7 +153,16 @@ export function generateVoucherPDF(data: VoucherData) {
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(13)
   doc.setFont('helvetica', 'bold')
-  doc.text(`${formatPEN(data.total)}`, W - margin - 5, y + 13, { align: 'right' })
+  doc.text(penText(data.total), W - margin - 5, y + 13, { align: 'right' })
+
+  if (data.paymentMethod || data.paymentDetail) {
+    y += 22
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(156, 163, 175)
+    const pay = [data.paymentMethod, data.paymentDetail].filter(Boolean).join(' · ')
+    doc.text(`Pago: ${pay}`, margin, y)
+  }
 
   // ── Footer ────────────────────────────────────────────────────────
   y = 270
