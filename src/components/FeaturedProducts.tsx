@@ -5,10 +5,11 @@ import { ProductCard } from './ProductCard'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
+const supabase = createClient()
+
 export function FeaturedProducts() {
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   useEffect(() => {
     async function fetchProducts() {
@@ -21,10 +22,7 @@ export function FeaturedProducts() {
           .limit(16)
 
         if (error) throw error
-
-        if (data) {
-          setProducts(data)
-        }
+        if (data) setProducts(data)
       } catch (error) {
         console.error('Error fetching featured products:', error)
       } finally {
@@ -32,7 +30,7 @@ export function FeaturedProducts() {
       }
     }
     fetchProducts()
-  }, [supabase])
+  }, [])
 
   return (
     <section className="py-20">

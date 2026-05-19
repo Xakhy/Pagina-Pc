@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ProductCard } from '@/components/ProductCard'
-import { CATEGORIES } from '@/lib/products'
+import { CATEGORIES } from '@/lib/categories'
 import { Loader2, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
@@ -23,7 +23,7 @@ export default function ProductosPage() {
     setLoading(true)
     try {
       let queryBuilder = supabase.from('products').select('*')
-      
+
       if (activeCategory !== 'Todas') {
         queryBuilder = queryBuilder.eq('category', activeCategory)
       }
@@ -33,7 +33,7 @@ export default function ProductosPage() {
       if (error) {
         throw error
       }
-      
+
       if (data) {
         setProducts(data)
       }
@@ -44,7 +44,7 @@ export default function ProductosPage() {
     }
   }
 
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(query.toLowerCase())
   )
 
@@ -62,8 +62,8 @@ export default function ProductosPage() {
 
           <div className="relative w-full md:w-96">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-            <Input 
-              placeholder="Buscar componentes..." 
+            <Input
+              placeholder="Buscar componentes..."
               className="pl-12 bg-zinc-900/50 border-white/5 h-12 rounded-xl text-white focus:border-indigo-500/50"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -77,11 +77,10 @@ export default function ProductosPage() {
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
-                activeCategory === cat 
-                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20' 
+              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${activeCategory === cat
+                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
                   : 'bg-zinc-900/50 border-white/5 text-zinc-500 hover:text-white hover:bg-zinc-900'
-              }`}
+                }`}
             >
               {cat}
             </button>
@@ -106,7 +105,7 @@ export default function ProductosPage() {
               <div className="text-6xl mb-4">📦</div>
               <h3 className="text-xl font-bold text-white uppercase tracking-tighter">No se encontraron productos</h3>
               <p className="text-zinc-500 text-sm max-w-xs font-medium">
-                Asegúrate de haber ejecutado el seed en <br/>
+                Asegúrate de haber ejecutado el seed en <br />
                 <code className="text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded mt-2 inline-block font-mono">/api/seed</code>
               </p>
             </div>

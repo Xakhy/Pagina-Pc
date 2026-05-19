@@ -12,6 +12,7 @@ const config: Config = {
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
         display: ['Outfit', 'sans-serif'],
+        tech: ['var(--font-rajdhani)', 'sans-serif'],
       },
       colors: {
         background: "hsl(var(--background))",

@@ -175,14 +175,11 @@ export function PCBuilderHomeBlock() {
                 <div className="flex flex-wrap gap-2">
                   {CASE_OPTIONS.map(opt => (
                     <button key={opt} onClick={() => setPcase(opt)}
-                      className={cn("px-4 py-2 rounded-full text-[10px] font-bold uppercase transition-all border",
-                        pcase === opt ? "bg-indigo-600 border-indigo-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white"
-                      )}>
+                    className={cn("px-5 py-2.5 rounded-xl text-xs font-bold uppercase transition-all border",                      pcase === opt ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white"                      )}>
                       {opt}
                     </button>
                   ))}
-                  <button className="px-4 py-2 rounded-full text-[10px] font-bold uppercase border border-dashed border-zinc-800 text-zinc-600 hover:text-white transition-all">+ Ver más</button>
-                </div>
+                    <button className="px-4 py-2 rounded-full text-[10px] font-bold uppercase border border-dashed border-zinc-800 text-zinc-600 hover:text-white transition-all">+ Ver más</button>                </div>
               </div>
 
               {/* Peripherals */}
@@ -191,9 +188,8 @@ export function PCBuilderHomeBlock() {
                 <div className="flex flex-wrap gap-2">
                   {PERIPHERAL_OPTIONS.map(opt => (
                     <button key={opt.name} onClick={() => togglePeripheral(opt.name)}
-                      className={cn("px-4 py-2 rounded-full text-[10px] font-bold uppercase transition-all border flex items-center gap-2",
-                        peripherals.includes(opt.name) ? "bg-indigo-600 border-indigo-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white"
-                      )}>
+                    className={cn("px-5 py-2.5 rounded-xl text-xs font-bold uppercase transition-all border flex items-center gap-2",
+                     peripherals.includes(opt.name) ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white"                      )}>
                       <opt.icon className="w-3 h-3" />
                       {opt.name}
                     </button>

@@ -1,3 +1,4 @@
+javascript
 const fs = require('fs');
 const path = require('path');
 
@@ -9,7 +10,7 @@ function processDir(dir) {
       processDir(fullPath);
     } else if (fullPath.endsWith('.tsx') || fullPath.endsWith('.ts')) {
       let content = fs.readFileSync(fullPath, 'utf8');
-      
+
       // Reemplazos de colores para soportar light mode
       content = content.replace(/bg-zinc-950/g, 'bg-zinc-50 dark:bg-zinc-950');
       content = content.replace(/bg-zinc-900/g, 'bg-zinc-100 dark:bg-zinc-900');
@@ -21,7 +22,7 @@ function processDir(dir) {
       content = content.replace(/bg-\[\#0c0c0e\]/g, 'bg-zinc-100 dark:bg-[#0c0c0e]');
       content = content.replace(/bg-\[\#0a0a0c\]/g, 'bg-zinc-200 dark:bg-[#0a0a0c]');
       content = content.replace(/border-white\/5/g, 'border-zinc-300 dark:border-white/5');
-      
+
       // Evitar duplicaciones accidentales si ya existen (opcional, pero con Regex es más complejo, 
       // confiaremos en que el código original no tenía dark: todavía masivamente)
       // Limpiar dobles dark:dark:

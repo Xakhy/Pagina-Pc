@@ -10,7 +10,21 @@
     --primary: 244 43% 51%; /* #534AB7 - Indigo Tech */
     --primary-foreground: 0 0% 98%;
     --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
     --border: 240 5% 90%;
+    --input: 240 5% 90%;
+    --ring: 244 43% 51%;
+    --radius: 0.75rem;
   }
 
   .dark {
@@ -19,30 +33,500 @@
     --primary: 244 43% 51%;
     --primary-foreground: 0 0% 100%;
     --card: 240 10% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 6%;
+    --popover-foreground: 0 0% 98%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 240 4% 16%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 98%;
     --border: 240 5% 15%;
+    --input: 240 5% 15%;
+    --ring: 244 43% 51%;
   }
 }
 
-/* Premium Light Mode Overrides */
-.light .bg-zinc-950, .light .bg-\[\#050506\], .light .bg-\[\#09090b\], .light .bg-\[\#0c0c0e\]\/80 { 
-  background-color: #ffffff !important; 
-  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+/* =========================================
+   PREMIUM LIGHT MODE — COMPLETE OVERRIDES
+   ========================================= */
+
+/* ── Backgrounds: Dark → Light ── */
+.light .bg-zinc-950,
+.light .bg-\[\#050506\],
+.light .bg-\[\#09090b\],
+.light .bg-\[\#0a0a0c\],
+.light .bg-\[\#0c0c0e\],
+.light .bg-\[\#0d0d1a\] {
+  background-color: #ffffff !important;
 }
-.light .bg-zinc-900\/40, .light .bg-zinc-900\/50, .light .bg-zinc-900 { 
-  background-color: rgba(255, 255, 255, 0.7) !important; 
+
+.light .bg-zinc-900 {
+  background-color: #f8f8fa !important;
 }
-.light .text-white { color: #09090b !important; }
-.light hover\:text-white:hover { color: #000000 !important; }
-.light .text-zinc-400, .light .text-zinc-500, .light .text-zinc-600 { color: #52525b !important; }
-.light .border-white\/5, .light .border-white\/10, .light .border-zinc-800 { border-color: #e4e4e7 !important; }
-.light .border-white\/20 { border-color: #d4d4d8 !important; }
-/* Botones inactivos y backgrounds secundarios */
-.light .bg-zinc-950.border-zinc-800 { 
-  background-color: #f4f4f5 !important; 
+
+.light .bg-zinc-900\/40,
+.light .bg-zinc-900\/50,
+.light .bg-zinc-900\/60 {
+  background-color: rgba(248, 248, 250, 0.85) !important;
 }
-.light .hover\:text-white:hover { color: #09090b !important; }
+
+.light .bg-zinc-900\/30 {
+  background-color: rgba(244, 244, 245, 0.7) !important;
+}
+
+.light .bg-zinc-800 {
+  background-color: #f0f0f2 !important;
+}
+
+.light .bg-zinc-950.border-zinc-800 {
+  background-color: #f4f4f5 !important;
+}
+
+.light .bg-\[\#0c0c0e\]\/80 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+}
+
+/* White/5 backgrounds → subtle gray */
+.light .bg-white\/5,
+.light .bg-white\/\[0\.02\],
+.light .bg-white\/\[0\.03\] {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+.light .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ── Text Colors ── */
+.light .text-white {
+  color: #18181b !important;
+}
+
+.light .text-zinc-100 {
+  color: #27272a !important;
+}
+
+.light .text-zinc-200 {
+  color: #3f3f46 !important;
+}
+
+.light .text-zinc-300 {
+  color: #52525b !important;
+}
+
+.light .text-zinc-400 {
+  color: #71717a !important;
+}
+
+.light .text-zinc-500 {
+  color: #71717a !important;
+}
+
+.light .text-zinc-600 {
+  color: #a1a1aa !important;
+}
+
+/* Keep accent colors but adjust for light bg */
+.light .text-gray-400 {
+  color: #71717a !important;
+}
+
+.light .text-gray-500 {
+  color: #a1a1aa !important;
+}
+
+.light .text-gray-600 {
+  color: #d4d4d8 !important;
+}
+
+.light .text-gray-300 {
+  color: #52525b !important;
+}
+
+/* ── Borders ── */
+.light .border-white\/5,
+.light .border-white\/10 {
+  border-color: #e4e4e7 !important;
+}
+
+.light .border-white\/20 {
+  border-color: #d4d4d8 !important;
+}
+
+.light .border-zinc-800 {
+  border-color: #e4e4e7 !important;
+}
+
+.light .border-zinc-300 {
+  border-color: #d4d4d8 !important;
+}
+
+/* Dividers */
+.light .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e4e4e7 !important;
+}
+
+/* ── Hover states ── */
+.light .hover\:text-white:hover {
+  color: #18181b !important;
+}
+
+.light .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+.light .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+.light .hover\:bg-zinc-800:hover {
+  background-color: #e4e4e7 !important;
+}
+
+.light .hover\:bg-zinc-700:hover {
+  background-color: #d4d4d8 !important;
+}
+
+.light .hover\:bg-zinc-900:hover {
+  background-color: #f0f0f2 !important;
+}
+
+/* ── Focus states ── */
+.light .focus\:text-white:focus {
+  color: #18181b !important;
+}
+
+.light .focus\:bg-white\/5:focus {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ── Shadows ── */
+.light .shadow-2xl {
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.06) !important;
+}
+
+.light .shadow-xl {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+.light .shadow-2xl.shadow-black\/50 {
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ── Navbar specific ── */
+.light .bg-background\/90 {
+  background-color: rgba(250, 250, 252, 0.92) !important;
+}
+
+.light .bg-background\/50 {
+  background-color: rgba(250, 250, 252, 0.6) !important;
+}
+
+/* ── Input fields ── */
+.light .bg-zinc-900\/50 {
+  background-color: #ffffff !important;
+  border-color: #d4d4d8 !important;
+}
+
+.light input.bg-white\/5,
+.light .bg-white\/5 input {
+  background-color: #ffffff !important;
+  border-color: #d4d4d8 !important;
+}
+
+/* ── Cards & Product Cards ── */
+.light .group.rounded-\[2\.5rem\].bg-zinc-900 {
+  background-color: #ffffff !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ── Glass effect ── */
+.light .glass,
+.light .tb-glass {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border-color: #e4e4e7 !important;
+}
+
+/* ── Emerald price text stays vibrant on light ── */
+.light .text-emerald-400 {
+  color: #059669 !important;
+}
+
+.light .text-emerald-400\/90 {
+  color: rgba(5, 150, 105, 0.9) !important;
+}
+
+/* ── Indigo accents — slightly darker for light bg ── */
+.light .text-indigo-400 {
+  color: #6366f1 !important;
+}
+
+.light .text-indigo-500 {
+  color: #534AB7 !important;
+}
+
+/* ── Violet accents ── */
+.light .text-violet-300 {
+  color: #7c3aed !important;
+}
+
+.light .text-violet-400 {
+  color: #7c3aed !important;
+}
+
+/* ── Red accents for delete/error ── */
+.light .text-red-400 {
+  color: #ef4444 !important;
+}
+
+.light .text-red-300 {
+  color: #dc2626 !important;
+}
+
+/* ── Amber accents ── */
+.light .text-amber-400 {
+  color: #d97706 !important;
+}
+
+/* ── Buttons — Keep colored buttons as-is, fix neutral buttons ── */
+.light .bg-zinc-800.hover\:bg-zinc-700 {
+  background-color: #f4f4f5 !important;
+  border-color: #d4d4d8 !important;
+  color: #3f3f46 !important;
+}
+
+.light .bg-zinc-800.hover\:bg-zinc-700:hover {
+  background-color: #e4e4e7 !important;
+}
+
+/* Cart button in navbar */
+.light .bg-zinc-900.border {
+  background-color: #f4f4f5 !important;
+  border-color: #d4d4d8 !important;
+}
+
+/* ── Category pills (inactive) ── */
+.light .bg-zinc-900\/50.border-white\/5 {
+  background-color: #f4f4f5 !important;
+  border-color: #e4e4e7 !important;
+}
+
+/* ── PC Builder section ── */
+.light .bg-\[\#0c0c0e\].border.border-indigo-500\/30 {
+  background-color: #fafafe !important;
+  border-color: rgba(83, 74, 183, 0.2) !important;
+  box-shadow: 0 4px 30px rgba(83, 74, 183, 0.06) !important;
+}
+
+.light .bg-zinc-900.border-zinc-800 {
+  background-color: #f4f4f5 !important;
+  border-color: #e4e4e7 !important;
+}
+
+.light .bg-zinc-950.border-white\/5 {
+  background-color: #ffffff !important;
+  border-color: #e4e4e7 !important;
+}
+
+/* ── Sheet / Cart Drawer ── */
+.light [data-state="open"].bg-\[\#0d0d1a\],
+.light .bg-\[\#0d0d1a\] {
+  background-color: #ffffff !important;
+}
+
+.light .border-l.border-white\/10 {
+  border-color: #e4e4e7 !important;
+}
+
+/* ── Dropdown Menu ── */
+.light .bg-zinc-900.border-white\/10 {
+  background-color: #ffffff !important;
+  border-color: #e4e4e7 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+.light .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+/* ── Admin Panel specific ── */
+.light .bg-zinc-900\/50.p-8 {
+  background-color: rgba(248, 248, 250, 0.8) !important;
+  border-color: #e4e4e7 !important;
+}
+
+/* ── Skeleton loading ── */
+.light .bg-zinc-900.animate-pulse {
+  background-color: #f0f0f2 !important;
+}
+
+/* ── Badge adjustments ── */
+.light .bg-emerald-500\/10 {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+}
+
+.light .bg-amber-500\/10 {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+}
+
+.light .bg-red-500\/10 {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+}
+
+.light .bg-indigo-500\/10 {
+  background-color: rgba(99, 102, 241, 0.08) !important;
+}
+
+.light .bg-indigo-600\/25 {
+  background-color: rgba(79, 70, 229, 0.12) !important;
+}
+
+.light .bg-violet-600\/30 {
+  background-color: rgba(124, 58, 237, 0.12) !important;
+}
+
+.light .bg-emerald-600\/25 {
+  background-color: rgba(5, 150, 105, 0.1) !important;
+}
+
+/* ── Green success states ── */
+.light .bg-green-500\/20 {
+  background-color: rgba(34, 197, 94, 0.12) !important;
+}
+
+.light .text-green-400 {
+  color: #16a34a !important;
+}
+
+.light .border-green-500\/20 {
+  border-color: rgba(34, 197, 94, 0.15) !important;
+}
+
+/* ── Checkout & Order pages ── */
+.light .border-violet-500 {
+  border-color: #7c3aed !important;
+}
+
+.light .ring-violet-500\/40 {
+  --tw-ring-color: rgba(124, 58, 237, 0.2) !important;
+}
+
+.light .ring-emerald-500\/50 {
+  --tw-ring-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+.light .border-emerald-500 {
+  border-color: #10b981 !important;
+}
+
+.light .text-emerald-200 {
+  color: #059669 !important;
+}
+
+.light .text-indigo-100 {
+  color: #4f46e5 !important;
+}
+
+/* ── Scroll indicator ── */
+.light .border-white\/20 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.light .bg-indigo-400 {
+  background-color: #6366f1 !important;
+}
+
+/* ── Indigo glow/blur circles — make subtle on light ── */
+.light .bg-indigo-600\/10 {
+  background-color: rgba(99, 102, 241, 0.04) !important;
+}
+
+.light .bg-\[\#534AB7\]\/10 {
+  background-color: rgba(83, 74, 183, 0.04) !important;
+}
+
+.light .bg-indigo-500\/20 {
+  background-color: rgba(99, 102, 241, 0.06) !important;
+}
+
+.light .bg-emerald-500\/10 {
+  background-color: rgba(16, 185, 129, 0.05) !important;
+}
+
+.light .bg-indigo-600\/5 {
+  background-color: rgba(99, 102, 241, 0.03) !important;
+}
+
+.light .bg-indigo-500\/5 {
+  background-color: rgba(99, 102, 241, 0.03) !important;
+}
+
+.light .bg-indigo-500\/10 {
+  background-color: rgba(99, 102, 241, 0.06) !important;
+}
+
+/* ── Admin layout bg ── */
+.light .min-h-screen.bg-zinc-950 {
+  background-color: #fafafa !important;
+}
+
+/* ── Selection color ── */
+.light ::selection {
+  background-color: rgba(83, 74, 183, 0.15) !important;
+  color: #4f46e5 !important;
+}
+
+/* ── Placeholder text ── */
+.light .placeholder\:text-gray-600::placeholder {
+  color: #a1a1aa !important;
+}
+
+/* ── Dark mode icon button in navbar ── */
+.light .bg-zinc-900.text-zinc-400 {
+  background-color: #f4f4f5 !important;
+  border-color: #d4d4d8 !important;
+  color: #71717a !important;
+}
+
+.light .text-zinc-600.h-4.w-4 {
+  color: #52525b !important;
+}
+
+/* ── Footer ── */
+.light footer.bg-zinc-950 {
+  background-color: #f4f4f5 !important;
+}
+
+/* ── Separator ── */
+.light .bg-white\/10 {
+  background-color: #e4e4e7 !important;
+}
+
+/* ── Dialog / Modal ── */
+.light [role="dialog"] {
+  background-color: #ffffff !important;
+  border-color: #e4e4e7 !important;
+}
+
+/* ── Select dropdown ── */
+.light [role="listbox"] {
+  background-color: #ffffff !important;
+  border-color: #e4e4e7 !important;
+}
+
+/* ── Animations on hover (dark overlays) ── */
+.light .group-hover\:bg-indigo-500\/10 {
+  background-color: rgba(99, 102, 241, 0.05) !important;
+}
 
 
+/* =========================================
+   BASE STYLES
+   ========================================= */
 
 @layer base {
   body {
@@ -73,6 +557,10 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #534AB7; border-radius: 10px; }
 
+.light ::-webkit-scrollbar-thumb { background: #a5b4fc; }
+.light ::-webkit-scrollbar-track { background: #f4f4f5; }
+
+/* Tech grid patterns */
 .tech-grid {
   background-image: 
     linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
@@ -80,8 +568,30 @@
   background-size: 50px 50px;
 }
 
+.light .tech-grid {
+  background-image: 
+    linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px) !important;
+}
+
 .hero-grid {
   background-image: 
     radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
   background-size: 40px 40px;
+}
+
+.light .hero-grid {
+  background-image: 
+    radial-gradient(circle at 2px 2px, rgba(0,0,0,0.03) 1px, transparent 0) !important;
+}
+
+/* Card hover animations */
+.card-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+}
+.light .card-hover:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08) !important;
 }

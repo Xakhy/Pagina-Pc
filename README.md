@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TechBuilds 🖥️
+### Tienda online de componentes PC + PC Builder con IA
+> Proyecto académico — Ingeniería de Software con IA · v0.2.0
 
-## Getting Started
+---
 
-First, run the development server:
+## ¿Qué es?
+
+Tienda online de componentes PC y tecnología dirigida a gamers principiantes en Perú, con un **PC Builder inteligente** integrado que usa IA para armar builds completas según el presupuesto y necesidades del usuario.
+
+---
+
+## Características
+
+- 🛍️ **Catálogo completo** — componentes PC con filtros por categoría y precio
+- 🤖 **PC Builder con IA** — genera builds compatibles según presupuesto, uso y nivel
+- 🛒 **Carrito inteligente** — persiste sin login (sessionStorage) y con login (DB)
+- 👤 **Sistema de cuentas** — registro, login, perfil y panel de órdenes con Supabase Auth
+- 📄 **Voucher PDF** — se genera automáticamente al finalizar la compra
+- 🔐 **Panel de administración** — gestión de productos y órdenes
+
+---
+
+## Stack
+
+| Capa | Tecnología |
+|---|---|
+| Framework | Next.js 14 (App Router) |
+| Lenguaje | TypeScript |
+| Estilos | Tailwind CSS + shadcn/ui |
+| Base de datos | Supabase (PostgreSQL + Auth) |
+| IA | Google Gemini API |
+| PDF | jsPDF |
+| Estado | Zustand |
+
+---
+
+## Instalación
 
 ```bash
+# Clonar el repositorio
+git clone https://github.com/Xakhy/Pagina-Pc.git
+cd Pagina-Pc
+
+# Instalar dependencias
+npm install
+
+# Configurar variables de entorno
+cp .env.example .env.local
+# Editar .env.local con tus credenciales
+
+# Correr en desarrollo
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre [http://localhost:3000](http://localhost:3000) en el navegador.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Variables de entorno
 
-## Learn More
+```env
+NEXT_PUBLIC_SUPABASE_URL=tu_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_anon_key
+SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key
+GEMINI_API_KEY=tu_gemini_key
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Roadmap
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Semana | Estado | Objetivo |
+|---|---|---|
+| Semana 1 | ✅ | Setup + catálogo de productos |
+| Semana 2 | ✅ | PC Builder IA + carrito + checkout + voucher PDF |
+| Semana 3 | 🔄 | Precios en tiempo real + mejoras UI |
+| Semana 4 | ⏳ | Panel admin completo + optimizaciones |
+| Semana 5 | ⏳ | Polish final + deploy a producción |
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Estructura del proyecto
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+├── app/
+│   ├── (auth)/          # Login y registro
+│   ├── admin/           # Panel de administración
+│   ├── api/             # Endpoints (pc-builder, sync-images, etc.)
+│   ├── checkout/        # Flujo de compra
+│   ├── ordenes/         # Historial de órdenes
+│   ├── perfil/          # Perfil de usuario
+│   └── productos/       # Catálogo y detalle de producto
+├── components/          # Componentes reutilizables
+└── lib/                 # Utilidades, store, supabase, etc.
+```
+
+---
+
+*Desarrollado por Xakhy · Lima, Perú · 2025*

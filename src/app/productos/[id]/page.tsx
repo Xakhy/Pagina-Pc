@@ -74,12 +74,10 @@ export default function ProductDetailPage() {
           
           {/* Gallery */}
           <div className="space-y-4">
-            <div className="aspect-square bg-zinc-900 rounded-[2.5rem] border border-white/5 p-12 flex items-center justify-center overflow-hidden">
-              <img
+          <div className="aspect-square h-[500px] bg-zinc-900 rounded-[2.5rem] border border-white/5 p-8 flex items-center justify-center overflow-hidden">              <img
                 src={activeImg}
                 alt={product.name}
-                className="max-w-full max-h-full object-contain"
-                onError={(e) => {
+                className="w-full h-full object-contain object-center scale-90"                onError={(e) => {
                   const el = e.currentTarget
                   el.onerror = null
                   const fb = categoryFallbackImage(product.category)
@@ -99,8 +97,7 @@ export default function ProductDetailPage() {
                     <img
                       src={img}
                       alt="thumbnail"
-                      className="max-w-full max-h-full object-contain"
-                      onError={(e) => {
+                      className="w-full h-full object-contain object-center scale-90"                      onError={(e) => {
                         const el = e.currentTarget
                         el.onerror = null
                         el.src = categoryFallbackImage(product.category)

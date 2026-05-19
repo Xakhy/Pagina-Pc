@@ -1,12 +1,12 @@
 import Link from 'next/link'
-import { CATEGORIES } from '@/lib/products'
+import { CATEGORIES } from '@/lib/categories'
 
 export function CategoriesSection() {
   return (
     <section className="py-16 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-baseline justify-between mb-8 border-b border-zinc-800 pb-4">
-          <h2 className="text-2xl font-bold text-white uppercase tracking-tighter" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+          <h2 className="text-2xl font-bold text-white uppercase tracking-tighter font-tech">
             Categorías destacadas
           </h2>
           <Link href="/productos" className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-all uppercase tracking-widest">
@@ -15,7 +15,7 @@ export function CategoriesSection() {
         </div>
 
         <div className="flex gap-8 overflow-x-auto pb-6 scrollbar-hide">
-          {CATEGORIES.map((cat: any) => (
+          {CATEGORIES.map((cat) => (
             <Link
               key={cat.name}
               href={`/productos?categoria=${encodeURIComponent(cat.name)}`}

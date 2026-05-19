@@ -25,27 +25,43 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [loadingAuth, setLoadingAuth] = useState(true)
+  const [hasLocalSession, setHasLocalSession] = useState(false)
   const totalItems = getTotalItems()
   const supabase = createClient()
   const router = useRouter()
 
   useEffect(() => {
     setMounted(true)
+    let hasSession = false
+    try {
+      hasSession = Object.keys(localStorage).some(key => key.startsWith('sb-') && key.endsWith('-auth-token'))
+    } catch (e) {
+      console.error(e)
+    }
+    setHasLocalSession(hasSession)
+
     const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handleScroll)
 
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user || null)
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single()
-        setIsAdmin(profile?.role === 'admin')
-      } else {
-        setIsAdmin(false)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        setUser(session?.user || null)
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single()
+          setIsAdmin(profile?.role === 'admin')
+        } else {
+          setIsAdmin(false)
+        }
+      } catch (err) {
+        console.error('Error fetching session:', err)
+      } finally {
+        setLoadingAuth(false)
       }
     }
     getSession()
@@ -53,10 +69,21 @@ export function Navbar() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null)
       if (session?.user) {
-        supabase.from('profiles').select('role').eq('id', session.user.id).single()
-          .then(({ data }) => setIsAdmin(data?.role === 'admin'))
+        const fetchRole = async () => {
+          try {
+            const { data } = await supabase.from('profiles').select('role').eq('id', session.user.id).single()
+            setIsAdmin(data?.role === 'admin')
+          } catch (err) {
+            console.error('Error in onAuthStateChange:', err)
+            setIsAdmin(false)
+          } finally {
+            setLoadingAuth(false)
+          }
+        }
+        fetchRole()
       } else {
         setIsAdmin(false)
+        setLoadingAuth(false)
       }
     })
 
@@ -85,7 +112,7 @@ export function Navbar() {
       scrolled ? 'bg-background/90 backdrop-blur-xl shadow-2xl' : 'bg-background/50'
     )}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 md:h-20">
+        <div className="relative flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
             <span className="font-bold text-2xl tracking-widest text-[#7F77DD]" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
@@ -93,8 +120,8 @@ export function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Links - Centrados */}
-          <div className="hidden md:flex flex-1 items-center justify-center gap-8">
+          {/* Desktop Links - Centrados de forma absoluta */}
+          <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center gap-8">
             {navLinks.map((link) => (
               <Link key={link.href} href={link.href}
                 className="text-xs font-medium text-zinc-400 hover:text-[#7F77DD] transition-all duration-200">
@@ -105,28 +132,37 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-3">
-            {mounted ? (
-              <button type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/5 bg-zinc-900 text-zinc-400 hover:bg-zinc-800">
-                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4 text-zinc-600" />}
-              </button>
-            ) : (
-              <div className="h-10 w-10 shrink-0 rounded-full border border-transparent bg-transparent" aria-hidden />
-            )}
+            <button type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/5 bg-zinc-900 text-zinc-400 hover:bg-zinc-800"
+              aria-label="Cambiar tema">
+              {mounted ? (
+                theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4 text-zinc-600" />
+              ) : (
+                <div className="h-4 w-4" />
+              )}
+            </button>
 
             {/* Cart */}
             <button id="cart-toggle-btn" onClick={toggleCart}
               className="relative px-4 py-2 rounded-xl bg-zinc-900 border border-white/5 hover:bg-white/5 transition-all group flex items-center gap-2">
               <ShoppingCart className="w-4 h-4 text-zinc-400 group-hover:text-indigo-400 transition-colors" />
               <span className="text-[11px] font-bold text-zinc-400">CARRITO</span>
-              {totalItems > 0 && (
+              {mounted && totalItems > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#534AB7] text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                   {totalItems}
                 </span>
               )}
             </button>
 
-            {user ? (
+            {loadingAuth || !mounted ? (
+              hasLocalSession || !mounted ? (
+                <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/5 bg-zinc-900 text-zinc-500 animate-pulse">
+                  <User className="h-4 w-4" />
+                </div>
+              ) : (
+                <div className="h-10 w-10 sm:w-[160px] bg-transparent shrink-0" />
+              )
+            ) : user ? (
               <DropdownMenu>
                 {/* Fix: DropdownMenuTrigger sin asChild — button directo */}
                 <DropdownMenuTrigger className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/5 bg-zinc-900 text-zinc-400 outline-none transition hover:bg-zinc-800 hover:text-white">

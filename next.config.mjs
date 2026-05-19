@@ -4,17 +4,16 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'm.media-amazon.com',
-        port: '',
-        pathname: '/images/**',
+        hostname: 'http2.mlstatic.com',
+        pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'http2.mlstatic.com',
-        port: '',
-        pathname: '/**',
+        hostname: '**.supabase.co',
+        pathname: '/storage/v1/object/public/**',
       },
     ],
+    unoptimized: true, // ← permite cualquier URL externa sin restricciones
   },
 };
 

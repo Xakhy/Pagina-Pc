@@ -40,6 +40,13 @@ export default function PCBuilderPage() {
   const [pcase, setPcase] = useState('La IA elige')
   const [peripherals, setPeripherals] = useState<string[]>([])
   
+  // Advanced hardware preferences (07 to 11)
+  const [cpuBrand, setCpuBrand] = useState('La IA elige')
+  const [ramGen, setRamGen] = useState('La IA elige')
+  const [graphicsType, setGraphicsType] = useState('Tarjeta Gráfica')
+  const [gpuBrand, setGpuBrand] = useState('La IA elige')
+  const [storageType, setStorageType] = useState('La IA elige')
+  
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [showBuild, setShowBuild] = useState(false)
@@ -60,7 +67,19 @@ export default function PCBuilderPage() {
       const res = await fetch('/api/pc-builder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ budget, usage, level, cooling, peripherals, specificCase: pcase }),
+        body: JSON.stringify({ 
+          budget, 
+          usage, 
+          level, 
+          cooling, 
+          peripherals, 
+          specificCase: pcase,
+          cpuBrand,
+          ramGen,
+          graphicsType,
+          gpuBrand,
+          storageType
+        }),
       })
       const data = await res.json()
       if (!res.ok || !Array.isArray(data.build)) {
@@ -269,6 +288,118 @@ export default function PCBuilderPage() {
                         <span className="text-[9px] font-black uppercase tracking-widest">{opt.name}</span>
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* 07 & 08: CPU Brand & RAM Gen */}
+                <div className="grid md:grid-cols-2 gap-12 pt-10 border-t border-white/10">
+                  <div className="space-y-4">
+                    <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">07. Marca de Procesador</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['AMD', 'Intel', 'La IA elige'].map(opt => (
+                        <button
+                          key={opt}
+                          onClick={() => setCpuBrand(opt)}
+                          className={cn(
+                            "py-3 rounded-xl text-xs font-bold transition-all border",
+                            cpuBrand === opt ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-white"
+                          )}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">08. Generación de RAM</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['DDR4', 'DDR5', 'La IA elige'].map(opt => (
+                        <button
+                          key={opt}
+                          onClick={() => setRamGen(opt)}
+                          className={cn(
+                            "py-3 rounded-xl text-xs font-bold transition-all border",
+                            ramGen === opt ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-white"
+                          )}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 09 & 10: Graphics Specs */}
+                <div className="grid md:grid-cols-2 gap-12 pt-10 border-t border-white/10">
+                  <div className="space-y-4">
+                    <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">09. Tipo de Gráficos</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {['Tarjeta Gráfica', 'Solo APU (Gráficos Integrados)'].map(opt => (
+                        <button
+                          key={opt}
+                          onClick={() => {
+                            setGraphicsType(opt)
+                            if (opt === 'Solo APU (Gráficos Integrados)') {
+                              setGpuBrand('La IA elige')
+                            }
+                          }}
+                          className={cn(
+                            "py-3 px-2 rounded-xl text-xs font-bold transition-all border leading-tight",
+                            graphicsType === opt ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-white"
+                          )}
+                        >
+                          {opt === 'Solo APU (Gráficos Integrados)' ? 'Solo APU' : opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">10. Marca de Tarjeta de Video</label>
+                      {graphicsType === 'Solo APU (Gráficos Integrados)' && (
+                        <Badge className="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded">Deshabilitado por APU</Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['NVIDIA GeForce RTX', 'AMD Radeon RX', 'La IA elige'].map(opt => {
+                        const disabled = graphicsType === 'Solo APU (Gráficos Integrados)'
+                        return (
+                          <button
+                            key={opt}
+                            disabled={disabled}
+                            onClick={() => !disabled && setGpuBrand(opt)}
+                            className={cn(
+                              "py-3 rounded-xl text-[10px] font-bold transition-all border leading-tight",
+                              disabled ? "bg-zinc-950/20 border-zinc-900/40 text-zinc-700 cursor-not-allowed opacity-40" :
+                              gpuBrand === opt ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-white"
+                            )}
+                          >
+                            {opt === 'NVIDIA GeForce RTX' ? 'NVIDIA' : opt === 'AMD Radeon RX' ? 'AMD RX' : 'IA Elige'}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 11: Storage Prefs */}
+                <div className="grid md:grid-cols-2 gap-12 pt-10 border-t border-white/10">
+                  <div className="space-y-4">
+                    <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">11. Tipo de Almacenamiento</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['NVMe SSD', 'SATA SSD', 'La IA elige'].map(opt => (
+                        <button
+                          key={opt}
+                          onClick={() => setStorageType(opt)}
+                          className={cn(
+                            "py-3 rounded-xl text-xs font-bold transition-all border",
+                            storageType === opt ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-white"
+                          )}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
