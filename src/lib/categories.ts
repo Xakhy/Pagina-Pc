@@ -8,7 +8,7 @@ export const CATEGORIES = [
   { id: 'cases', name: 'Cases & Chasis', image: '1', color: 'from-emerald-500 to-emerald-700' },
   { id: 'audio', name: 'Audio & Headsets', image: '1', color: 'from-indigo-500 to-indigo-700' },
   { id: 'mice', name: 'Mouse Gaming', image: '1', color: 'from-blue-500 to-blue-700' },
-  { id: 'keyboards', name: 'Teclados Mecánicos', image: '1', color: 'from-zinc-500 to-zinc-700' },
+  { id: 'keyboards', name: 'Teclados', image: '1', color: 'from-zinc-500 to-zinc-700' },
   { id: 'psu', name: 'Fuentes de Poder', image: '1', color: 'from-amber-600 to-orange-700' },
   { id: 'cooling', name: 'Refrigeración', image: '1', color: 'from-cyan-600 to-blue-700' },
 ]

@@ -37,7 +37,7 @@ const CATEGORIES = [
   'Almacenamiento', 'Audio & Headsets', 'Cases & Chasis',
   'Fuentes de Poder', 'Memorias RAM', 'Monitores',
   'Mouse Gaming', 'Placas Madre', 'Procesadores',
-  'Refrigeración', 'Tarjetas de Video', 'Teclados Mecánicos',
+  'Refrigeración', 'Tarjetas de Video', 'Teclados',
 ]
 
 type OrderRow = {
@@ -396,22 +396,20 @@ export default function AdminPage() {
       <div className="flex gap-2 bg-zinc-900/30 p-1.5 rounded-2xl border border-white/5 w-fit">
         <button
           onClick={() => setActiveTab('products')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-            activeTab === 'products'
-              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-              : 'text-zinc-500 hover:text-white'
-          }`}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'products'
+            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+            : 'text-zinc-500 hover:text-white'
+            }`}
         >
           <Package className="w-4 h-4" />
           Productos
         </button>
         <button
           onClick={() => setActiveTab('orders')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all relative ${
-            activeTab === 'orders'
-              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-              : 'text-zinc-500 hover:text-white'
-          }`}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all relative ${activeTab === 'orders'
+            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+            : 'text-zinc-500 hover:text-white'
+            }`}
         >
           <ClipboardList className="w-4 h-4" />
           Órdenes
@@ -423,11 +421,10 @@ export default function AdminPage() {
         </button>
         <button
           onClick={() => setActiveTab('history')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-            activeTab === 'history'
-              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-              : 'text-zinc-500 hover:text-white'
-          }`}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'history'
+            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+            : 'text-zinc-500 hover:text-white'
+            }`}
         >
           <History className="w-4 h-4" />
           Historial
@@ -542,13 +539,12 @@ export default function AdminPage() {
                         ) : (
                           <div className="flex items-center gap-2">
                             <div
-                              className={`w-2 h-2 rounded-full ${
-                                p.stock > 5
-                                  ? 'bg-emerald-500'
-                                  : p.stock > 0
+                              className={`w-2 h-2 rounded-full ${p.stock > 5
+                                ? 'bg-emerald-500'
+                                : p.stock > 0
                                   ? 'bg-amber-500'
                                   : 'bg-red-500'
-                              }`}
+                                }`}
                             />
                             <span className="text-zinc-300 font-bold text-xs">
                               {p.stock} unid.
@@ -565,25 +561,22 @@ export default function AdminPage() {
                                 is_featured: !editForm.is_featured,
                               })
                             }
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-                              editForm.is_featured
-                                ? 'bg-amber-500/20 text-amber-400'
-                                : 'bg-zinc-800 text-zinc-600'
-                            }`}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${editForm.is_featured
+                              ? 'bg-amber-500/20 text-amber-400'
+                              : 'bg-zinc-800 text-zinc-600'
+                              }`}
                           >
                             <Star
-                              className={`w-4 h-4 ${
-                                editForm.is_featured ? 'fill-amber-400' : ''
-                              }`}
+                              className={`w-4 h-4 ${editForm.is_featured ? 'fill-amber-400' : ''
+                                }`}
                             />
                           </button>
                         ) : (
                           <Star
-                            className={`w-4 h-4 mx-auto ${
-                              p.is_featured
-                                ? 'text-amber-400 fill-amber-400'
-                                : 'text-zinc-700'
-                            }`}
+                            className={`w-4 h-4 mx-auto ${p.is_featured
+                              ? 'text-amber-400 fill-amber-400'
+                              : 'text-zinc-700'
+                              }`}
                           />
                         )}
                       </td>
@@ -1043,9 +1036,8 @@ export default function AdminPage() {
             )}
           </div>
         </div>
-      )}
 
-      {/* ══════════════ ADD PRODUCT MODAL ══════════════ */}
+      )}{/* ══════════════ ADD PRODUCT MODAL ══════════════ */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="bg-zinc-950 border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1060,10 +1052,16 @@ export default function AdminPage() {
               <Label className="text-zinc-400 text-xs font-bold uppercase tracking-widest">
                 Nombre del producto *
               </Label>
+
               <Input
                 placeholder="Ej: NVIDIA GeForce RTX 4070"
                 value={addForm.name}
-                onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
+                onChange={(e) =>
+                  setAddForm({
+                    ...addForm,
+                    name: e.target.value,
+                  })
+                }
                 className="bg-zinc-900 border-white/10 h-11 text-white"
               />
             </div>
@@ -1074,26 +1072,36 @@ export default function AdminPage() {
                 <Label className="text-zinc-400 text-xs font-bold uppercase tracking-widest">
                   Categoría *
                 </Label>
+
                 <Select
                   value={addForm.category}
-                  onValueChange={(val) => { if (val) setAddForm({ ...addForm, category: val }) }}
+                  onValueChange={(val) => {
+                    if (val) setAddForm({ ...addForm, category: val })
+                  }}
                 >
                   <SelectTrigger className="bg-zinc-900 border-white/10 h-11 text-white">
                     <SelectValue placeholder="Seleccionar..." />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-white/10">
+
+                  <SelectContent className="bg-zinc-900 border-white/10 z-[9999] pointer-events-auto">
                     {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat} className="text-white hover:bg-white/5">
+                      <SelectItem
+                        key={cat}
+                        value={cat}
+                        className="text-white cursor-pointer"
+                      >
                         {cat}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
                 <Label className="text-zinc-400 text-xs font-bold uppercase tracking-widest">
                   Precio (S/) *
                 </Label>
+
                 <Input
                   type="number"
                   placeholder="0"
@@ -1131,11 +1139,10 @@ export default function AdminPage() {
                   onClick={() =>
                     setAddForm({ ...addForm, is_featured: !addForm.is_featured })
                   }
-                  className={`w-full h-11 rounded-lg border flex items-center justify-center gap-2 text-xs font-bold transition-all ${
-                    addForm.is_featured
-                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
-                      : 'bg-zinc-900 border-white/10 text-zinc-500'
-                  }`}
+                  className={`w-full h-11 rounded-lg border flex items-center justify-center gap-2 text-xs font-bold transition-all ${addForm.is_featured
+                    ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
+                    : 'bg-zinc-900 border-white/10 text-zinc-500'
+                    }`}
                 >
                   <Star
                     className={`w-4 h-4 ${addForm.is_featured ? 'fill-amber-400' : ''}`}
@@ -1260,6 +1267,6 @@ export default function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   )
 }

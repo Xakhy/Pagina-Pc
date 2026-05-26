@@ -23,12 +23,15 @@ const BUDGET_PRESETS = [1000, 2000, 4000, 8000, 12000, 16000, 20000, 24000]
 
 const PERIPHERAL_OPTIONS = [
   { name: 'Mouse', icon: MousePointer2 },
-  { name: 'Teclado', icon: Keyboard },
+  { name: 'Teclados', icon: Keyboard },
   { name: 'Micrófono', icon: Mic2 },
   { name: 'Mousepad', icon: Square },
   { name: 'Auriculares', icon: Monitor },
   { name: 'Monitor', icon: Monitor },
 ]
+
+// Fixed locale to avoid SSR/client hydration mismatch
+const formatNum = (n: number) => n.toLocaleString('es-PE')
 
 export default function PCBuilderPage() {
   const router = useRouter()
@@ -39,20 +42,20 @@ export default function PCBuilderPage() {
   const [cooling, setCooling] = useState('Aire')
   const [pcase, setPcase] = useState('La IA elige')
   const [peripherals, setPeripherals] = useState<string[]>([])
-  
+
   // Advanced hardware preferences (07 to 11)
   const [cpuBrand, setCpuBrand] = useState('La IA elige')
   const [ramGen, setRamGen] = useState('La IA elige')
   const [graphicsType, setGraphicsType] = useState('Tarjeta Gráfica')
   const [gpuBrand, setGpuBrand] = useState('La IA elige')
   const [storageType, setStorageType] = useState('La IA elige')
-  
+
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [showBuild, setShowBuild] = useState(false)
 
   const adjustBudget = (amount: number) => {
-    setBudget(prev => Math.max(500, (prev || 0) + amount))
+    setBudget(prev => Math.max(1500, (prev || 0) + amount))
   }
 
   const togglePeripheral = (val: string) => {
@@ -67,12 +70,12 @@ export default function PCBuilderPage() {
       const res = await fetch('/api/pc-builder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          budget, 
-          usage, 
-          level, 
-          cooling, 
-          peripherals, 
+        body: JSON.stringify({
+          budget,
+          usage,
+          level,
+          cooling,
+          peripherals,
           specificCase: pcase,
           cpuBrand,
           ramGen,
@@ -134,23 +137,23 @@ export default function PCBuilderPage() {
           {/* Main Configurator */}
           <div className="lg:col-span-8 space-y-6">
             <div className="glass-card border border-white/5 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden bg-zinc-900/40 backdrop-blur-xl">
-              
+
               <div className="space-y-12">
                 {/* Section 1: Budget */}
                 <div className="space-y-4">
                   <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest block">Presupuesto máximo (S/)</label>
-                  
+
                   <div className="relative pt-2 pb-6">
                     <Slider
-                      min={500}
+                      min={1500}
                       max={40000}
                       step={100}
-                      value={[Math.min(40000, Math.max(500, budget))]}
+                      value={[Math.min(40000, Math.max(1500, budget))]}
                       onValueChange={(vals: any) => setBudget(Array.isArray(vals) ? vals[0] : vals)}
                       className="cursor-pointer"
                     />
-                    <div className="mt-4 text-xl font-bold text-indigo-500 font-tech">
-                      S/ {budget.toLocaleString()}
+                    <div className="mt-4 text-xl font-bold text-indigo-500 font-tech" suppressHydrationWarning>
+                      S/ {formatNum(budget)}
                       {budget === 40000 && <span className="text-xs font-sans text-zinc-500 ml-3 uppercase tracking-widest font-bold">Límite Estándar</span>}
                       {budget > 40000 && <span className="text-xs font-sans text-emerald-500 ml-3 uppercase tracking-widest font-bold">Presupuesto Personalizado</span>}
                     </div>
@@ -170,20 +173,20 @@ export default function PCBuilderPage() {
                         {preset}
                       </button>
                     ))}
-                    
+
                     {/* Minimal Manual Input */}
                     <div className="flex items-center gap-2 ml-auto relative">
                       <span className="text-[10px] font-bold text-zinc-600 uppercase">Manual:</span>
-                      <Input 
+                      <Input
                         type="number"
-                        min={500}
+                        min={1500}
                         max={100000}
                         value={budget || ''}
                         onChange={(e) => setBudget(Number(e.target.value) || 0)}
                         onBlur={() => {
-                          if (budget < 500) {
-                            toast.warning('El presupuesto mínimo es de S/ 500 para armar una PC funcional.')
-                            setBudget(500)
+                          if (budget < 1500) {
+                            toast.warning('El presupuesto mínimo es de S/ 1,500 para armar una PC funcional.')
+                            setBudget(1500)
                           } else if (budget > 100000) {
                             toast.warning('El presupuesto manual máximo es S/ 100,000.')
                             setBudget(100000)
@@ -371,7 +374,7 @@ export default function PCBuilderPage() {
                             className={cn(
                               "py-3 rounded-xl text-[10px] font-bold transition-all border leading-tight",
                               disabled ? "bg-zinc-950/20 border-zinc-900/40 text-zinc-700 cursor-not-allowed opacity-40" :
-                              gpuBrand === opt ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-white"
+                                gpuBrand === opt ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-white"
                             )}
                           >
                             {opt === 'NVIDIA GeForce RTX' ? 'NVIDIA' : opt === 'AMD Radeon RX' ? 'AMD RX' : 'IA Elige'}
@@ -412,35 +415,35 @@ export default function PCBuilderPage() {
               <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-8 flex items-center gap-2">
                 <Info className="w-4 h-4 text-indigo-500" /> Panel de Control IA
               </h4>
-              
+
               <div className="space-y-6 mb-10">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-zinc-500">Presupuesto</span>
-                  <span className="text-white font-bold font-tech">S/ {(budget || 0).toLocaleString()}</span>
+                  <span className="text-white font-bold font-tech" suppressHydrationWarning>S/ {new Intl.NumberFormat('es-PE').format(budget || 0)}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-zinc-500">Configuración</span>
                   <span className="text-white font-bold">{usage} • {level}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                   <span className="text-zinc-500">Coste Total</span>
-                   <span className="text-emerald-400 font-bold font-tech">S/ {(result?.total || 0).toLocaleString()}</span>
+                  <span className="text-zinc-500">Coste Total</span>
+                  <span className={`font-bold font-tech ${result && result.total > budget ? 'text-red-400' : 'text-emerald-400'}`} suppressHydrationWarning>S/ {new Intl.NumberFormat('es-PE').format(result?.total || 0)}</span>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <Button 
-                   onClick={handleGenerate}
-                   disabled={loading}
-                   className="w-full h-16 bg-[#534AB7] hover:bg-[#4339a7] text-white font-black rounded-2xl shadow-2xl shadow-indigo-500/30 text-sm tracking-widest"
+                <Button
+                  onClick={handleGenerate}
+                  disabled={loading}
+                  className="w-full h-16 bg-[#534AB7] hover:bg-[#4339a7] text-white font-black rounded-2xl shadow-2xl shadow-indigo-500/30 text-sm tracking-widest"
                 >
-                   {loading ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="w-5 h-5 mr-2" />}
-                   GENERAR BUILD CON IA
+                  {loading ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="w-5 h-5 mr-2" />}
+                  GENERAR BUILD CON IA
                 </Button>
                 {result && (
-                  <Button 
+                  <Button
                     onClick={() => setShowBuild(!showBuild)}
-                    variant="outline" 
+                    variant="outline"
                     className="w-full h-14 border-zinc-800 text-zinc-400 font-bold rounded-2xl hover:text-white bg-zinc-950/50"
                   >
                     {showBuild ? 'Ocultar Detalle' : 'Ver Build Completa'}
@@ -449,9 +452,9 @@ export default function PCBuilderPage() {
               </div>
 
               <div className="mt-8 p-5 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
-                 <p className="text-[10px] text-zinc-500 leading-relaxed italic">
-                   * La IA optimiza la build seleccionando componentes compatibles con stock garantizado en Perú.
-                 </p>
+                <p className="text-[10px] text-zinc-500 leading-relaxed italic">
+                  * La IA optimiza la build seleccionando componentes compatibles con stock garantizado en Perú.
+                </p>
               </div>
             </div>
           </div>
@@ -461,26 +464,26 @@ export default function PCBuilderPage() {
         {showBuild && result && Array.isArray(result.build) && result.build.length > 0 && (
           <div className="mt-16 space-y-12 animate-in fade-in slide-in-from-bottom-10 duration-700">
             <div className="flex items-center gap-5 border-b border-zinc-800 pb-8">
-               <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-600/20">
-                  <Monitor className="w-7 h-7" />
-               </div>
-               <div>
-                  <h3 className="text-3xl font-bold text-white uppercase tracking-tighter font-tech">Build Recomendada por IA</h3>
-                  <p className="text-zinc-500 text-sm font-medium">{result.summary}</p>
-               </div>
+              <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-600/20">
+                <Monitor className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-3xl font-bold text-white uppercase tracking-tighter font-tech">Build Recomendada por IA</h3>
+                <p className="text-zinc-500 text-sm font-medium">{result.summary}</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {(result.build as any[]).map(({ product, reason }: any) => (
                 <div key={product.id} className="group bg-zinc-900/50 backdrop-blur-md border border-white/5 rounded-[3rem] overflow-hidden hover:border-indigo-500/50 transition-all shadow-2xl">
                   <div className="aspect-square bg-zinc-950 flex items-center justify-center p-12 border-b border-white/5 relative">
-                    <img 
+                    <img
                       src={resolveProductImageUrl(
                         product.name,
                         product.category,
                         product.image_url
                       )}
-                      alt={product.name} 
+                      alt={product.name}
                       className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-700"
                       onError={(e) => {
                         const el = e.currentTarget
@@ -489,7 +492,7 @@ export default function PCBuilderPage() {
                       }}
                     />
                     <div className="absolute top-6 right-6">
-                       <Badge className="bg-zinc-900/90 text-zinc-500 border-zinc-800 text-[8px] font-black px-2 py-1 uppercase">{product.category}</Badge>
+                      <Badge className="bg-zinc-900/90 text-zinc-500 border-zinc-800 text-[8px] font-black px-2 py-1 uppercase">{product.category}</Badge>
                     </div>
                   </div>
                   <div className="p-7">
@@ -498,8 +501,8 @@ export default function PCBuilderPage() {
                     </h4>
                     <p className="text-[10px] text-zinc-600 leading-relaxed mb-8 italic font-medium">{reason}</p>
                     <div className="flex items-center justify-between pt-5 border-t border-white/5">
-                      <span className="text-xl font-bold text-emerald-400 font-tech">S/ {(product.price || 0).toLocaleString()}</span>
-                      <button 
+                      <span className="text-xl font-bold text-emerald-400 font-tech" suppressHydrationWarning>S/ {new Intl.NumberFormat('es-PE').format(product.price || 0)}</span>
+                      <button
                         onClick={() =>
                           addItem({
                             id: product.id,
@@ -525,37 +528,37 @@ export default function PCBuilderPage() {
             </div>
 
             <div className="flex flex-col items-center gap-8 pt-12">
-               <Button 
-                 onClick={() => {
-                   if (!result || !result.build) return
-                   result.build.forEach(({ product }: any) => {
-                     addItem({
-                       id: product.id,
-                       name: product.name,
-                       price: product.price,
-                       quantity: 1,
-                       category: product.category,
-                       image_url: resolveProductImageUrl(
-                         product.name,
-                         product.category,
-                         product.image_url
-                       ),
-                     })
-                   })
-                   toast.success('¡Configuración completa añadida al carrito!')
-                   router.push('/checkout')
-                 }}
-                 className="h-16 px-20 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-2xl shadow-emerald-600/30 text-xl tracking-widest transition-all hover:scale-105 active:scale-95"
-               >
-                  AGREGAR TODA LA CONFIGURACIÓN
-               </Button>
-               <div className="flex flex-wrap justify-center gap-4">
-                  {result.tips?.map((tip: string, i: number) => (
-                    <Badge key={i} variant="outline" className="border-zinc-800 text-zinc-600 py-2 px-5 rounded-full text-[10px] uppercase font-bold bg-zinc-950/30">
-                       {tip}
-                    </Badge>
-                  ))}
-               </div>
+              <Button
+                onClick={() => {
+                  if (!result || !result.build) return
+                  result.build.forEach(({ product }: any) => {
+                    addItem({
+                      id: product.id,
+                      name: product.name,
+                      price: product.price,
+                      quantity: 1,
+                      category: product.category,
+                      image_url: resolveProductImageUrl(
+                        product.name,
+                        product.category,
+                        product.image_url
+                      ),
+                    })
+                  })
+                  toast.success('¡Configuración completa añadida al carrito!')
+                  router.push('/checkout')
+                }}
+                className="h-16 px-20 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-2xl shadow-emerald-600/30 text-xl tracking-widest transition-all hover:scale-105 active:scale-95"
+              >
+                AGREGAR TODA LA CONFIGURACIÓN
+              </Button>
+              <div className="flex flex-wrap justify-center gap-4">
+                {result.tips?.map((tip: string, i: number) => (
+                  <Badge key={i} variant="outline" className="border-zinc-800 text-zinc-600 py-2 px-5 rounded-full text-[10px] uppercase font-bold bg-zinc-950/30">
+                    {tip}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </div>
         )}

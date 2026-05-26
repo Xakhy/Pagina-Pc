@@ -7,263 +7,153 @@ type Suggestion = {
     reason: string
 }
 
-const REQUIRED = ['cpu', 'gpu', 'ram', 'motherboard', 'storage', 'psu', 'case']
+// ── Utilities ─────────────────────────────────────────────────────────────────
 
-const CATEGORY_MAP: Record<string, string[]> = {
-    cpu: ['procesadores'],
-    gpu: ['tarjetas de video'],
-    ram: ['memorias ram'],
-    motherboard: ['placas madre'],
-    storage: ['almacenamiento'],
-    psu: ['fuentes de poder'],
-    case: ['cases & chasis'],
-}
-
-const normalize = (t: string) => t.toLowerCase()
-
-// 🧠 detectar plataforma
-function detectPlatform(cpuName: string) {
-    const name = cpuName.toLowerCase()
-    if (name.includes('ryzen') || name.includes('amd')) return 'amd'
+function detectPlatform(cpuName: string): 'amd' | 'intel' {
+    const n = cpuName.toLowerCase()
+    if (n.includes('ryzen') || n.includes('athlon') || (n.includes('amd') && !n.includes('radeon'))) return 'amd'
     return 'intel'
 }
 
-// ⚖️ evitar bottleneck simple
-function isBalanced(cpu: any, gpu: any) {
-    const cpuHigh = cpu.price > 1500
-    const gpuHigh = gpu.price > 2000
-
-    if (gpuHigh && !cpuHigh) return false // GPU muy fuerte + CPU débil
-    return true
+/** Returns 0 when array is empty (safe for Math.min) */
+function minPrice(products: any[]): number {
+    if (!products.length) return 0
+    return Math.min(...products.map(p => Number(p.price)))
 }
 
-// Peripheral helper mappings
+/** Best product within maxPrice. highEnd=true → most expensive, false → cheapest */
+function pickBest(options: any[], maxPrice: number, highEnd: boolean): any | undefined {
+    const fit = options.filter(p => Number(p.price) > 0 && Number(p.price) <= maxPrice)
+    if (!fit.length) return undefined
+    return fit.reduce((a, b) => (highEnd ? b.price > a.price : b.price < a.price) ? b : a)
+}
+
 function getCategoryForPeripheral(per: string): string[] {
     const p = per.toLowerCase()
-    if (p.includes('mouse') && !p.includes('pad')) return ['mouse gaming']
-    if (p.includes('teclado')) return ['teclados mecánicos']
-    if (p.includes('monitor')) return ['monitores']
-    if (p.includes('auriculares') || p.includes('headset') || p.includes('audifonos')) return ['audio & headsets']
+    if ((p.includes('mouse') || p.includes('ratón')) && !p.includes('pad')) return ['mouse gaming']
+    if (p.includes('teclados') || p.includes('keyboard')) return ['teclados mecánicos']
+    if (p.includes('monitor') || p.includes('pantalla')) return ['monitores']
+    if (p.includes('auricular') || p.includes('headset') || p.includes('audifono') || p.includes('headphone')) return ['audio & headsets']
     if (p.includes('micrófono') || p.includes('microfono') || p.includes('mic')) return ['audio & headsets']
+    if (p.includes('mousepad') || p.includes('pad')) return ['mouse gaming', 'accesorios']
     return []
 }
 
-function matchesPeripheralName(perName: string, productName: string): boolean {
+function matchesPeripheralCategory(perName: string, productName: string): boolean {
     const p = perName.toLowerCase()
-    const name = productName.toLowerCase()
-    if (p.includes('mouse') && !p.includes('pad') && !name.includes('pad')) return true
-    if (p.includes('teclado')) return true
-    if (p.includes('monitor')) return true
-    if (p.includes('auriculares') || p.includes('audifonos')) {
-        return name.includes('cloud') || name.includes('g733') || name.includes('headset') || name.includes('wireless') || name.includes('audifono') || name.includes('auricular')
+    const n = productName.toLowerCase()
+    if ((p.includes('mouse') || p.includes('ratón')) && !p.includes('pad')) return !n.includes('pad')
+    if (p.includes('teclados') || p.includes('keyboard')) return true
+    if (p.includes('monitor') || p.includes('pantalla')) return true
+    if (p.includes('auricular') || p.includes('audifono') || p.includes('headphone')) {
+        return n.includes('cloud') || n.includes('g733') || n.includes('headset') ||
+            n.includes('wireless') || n.includes('audifono') || n.includes('auricular') || n.includes('hyper')
     }
-    if (p.includes('micrófono') || p.includes('microfono')) {
-        return name.includes('wave') || name.includes('mic') || name.includes('microfono') || name.includes('microphone')
+    if (p.includes('micrófono') || p.includes('microfono') || p.includes('mic')) {
+        return n.includes('wave') || n.includes('mic') || n.includes('microfono') || n.includes('microphone')
     }
-    if (p.includes('mousepad')) {
-        return name.includes('pad') || name.includes('mousepad')
-    }
+    if (p.includes('mousepad') || p.includes('pad')) return n.includes('pad') || n.includes('mousepad')
     return true
 }
 
-// 🔥 fallback inteligente real
-function fallbackBuild(products: any[], budget: number, preferences: any) {
-    const safe = products ?? []
-    let remaining = budget
-    const build: any[] = []
+// ── Category filters ──────────────────────────────────────────────────────────
 
-    const {
-        cooling = 'La IA elige',
-        specificCase = 'La IA elige',
-        cpuBrand = 'La IA elige',
-        ramGen = 'La IA elige',
-        graphicsType = 'Tarjeta Gráfica',
-        gpuBrand = 'La IA elige',
-        storageType = 'La IA elige',
-        peripherals = [],
-    } = preferences
-
-    // 1. CPU
-    let cpuOptions = safe.filter(p => p.category.toLowerCase().includes('procesadores'))
-    if (cpuBrand === 'AMD') {
-        cpuOptions = cpuOptions.filter(p => p.name.toLowerCase().includes('ryzen') || p.name.toLowerCase().includes('amd'))
-    } else if (cpuBrand === 'Intel') {
-        cpuOptions = cpuOptions.filter(p => !p.name.toLowerCase().includes('ryzen') && !p.name.toLowerCase().includes('amd'))
-    }
-    if (budget > 8000) {
-        cpuOptions.sort((a, b) => b.price - a.price)
-    } else {
-        cpuOptions.sort((a, b) => a.price - b.price)
-    }
-    const cpuSelected = cpuOptions.find(p => p.price <= budget * 0.25) || cpuOptions[0]
-    if (cpuSelected) {
-        build.push({ category: 'cpu', reason: 'Procesador equilibrado seleccionado por compatibilidad.', product: cpuSelected })
-        remaining -= cpuSelected.price
-    }
-
-    // 2. GPU (if dedicated)
-    const isAPU = graphicsType === 'Solo APU (Gráficos Integrados)'
-    if (!isAPU) {
-        let gpuOptions = safe.filter(p => p.category.toLowerCase().includes('video'))
-        if (gpuBrand === 'NVIDIA GeForce RTX') {
-            gpuOptions = gpuOptions.filter(p => p.name.toLowerCase().includes('rtx') || p.name.toLowerCase().includes('geforce'))
-        } else if (gpuBrand === 'AMD Radeon RX') {
-            gpuOptions = gpuOptions.filter(p => p.name.toLowerCase().includes('rx') || p.name.toLowerCase().includes('radeon'))
-        }
-        if (budget > 8000) {
-            gpuOptions.sort((a, b) => b.price - a.price)
-        } else {
-            gpuOptions.sort((a, b) => a.price - b.price)
-        }
-        const gpuSelected = gpuOptions.find(p => p.price <= remaining * 0.5) || gpuOptions[0]
-        if (gpuSelected && gpuSelected.price <= remaining) {
-            build.push({ category: 'gpu', reason: 'Tarjeta de video para optimizar la potencia de procesamiento gráfico.', product: gpuSelected })
-            remaining -= gpuSelected.price
-        }
-    }
-
-    // 3. RAM
-    let ramOptions = safe.filter(p => p.category.toLowerCase().includes('memorias ram'))
-    if (ramGen === 'DDR4') {
-        ramOptions = ramOptions.filter(p => p.name.toLowerCase().includes('ddr4'))
-    } else if (ramGen === 'DDR5') {
-        ramOptions = ramOptions.filter(p => p.name.toLowerCase().includes('ddr5'))
-    }
-    if (budget > 8000) {
-        ramOptions.sort((a, b) => b.price - a.price)
-    } else {
-        ramOptions.sort((a, b) => a.price - b.price)
-    }
-    const ramSelected = ramOptions.find(p => p.price <= remaining) || ramOptions[0]
-    if (ramSelected) {
-        build.push({ category: 'ram', reason: 'Memoria RAM seleccionada por compatibilidad y velocidad.', product: ramSelected })
-        remaining -= ramSelected.price
-    }
-
-    // 4. Motherboard
-    let mbOptions = safe.filter(p => p.category.toLowerCase().includes('placas madre'))
-    const platform = cpuSelected ? detectPlatform(cpuSelected.name) : 'amd'
-    if (platform === 'amd') {
-        mbOptions = mbOptions.filter(p => p.name.toLowerCase().includes('b650') || p.name.toLowerCase().includes('x670') || p.name.toLowerCase().includes('b550') || p.name.toLowerCase().includes('a520') || p.name.toLowerCase().includes('a620') || p.name.toLowerCase().includes('am5') || p.name.toLowerCase().includes('am4'))
-    } else {
-        mbOptions = mbOptions.filter(p => p.name.toLowerCase().includes('h610') || p.name.toLowerCase().includes('b760') || p.name.toLowerCase().includes('z790') || p.name.toLowerCase().includes('b660') || p.name.toLowerCase().includes('z690'))
-    }
-    const isDDR5 = ramSelected ? ramSelected.name.toLowerCase().includes('ddr5') : (ramGen === 'DDR5')
-    if (isDDR5) {
-        mbOptions = mbOptions.filter(p => p.name.toLowerCase().includes('ddr5') || !p.name.toLowerCase().includes('ddr4'))
-    } else {
-        mbOptions = mbOptions.filter(p => p.name.toLowerCase().includes('ddr4'))
-    }
-    if (budget > 8000) {
-        mbOptions.sort((a, b) => b.price - a.price)
-    } else {
-        mbOptions.sort((a, b) => a.price - b.price)
-    }
-    const mbSelected = mbOptions.find(p => p.price <= remaining) || mbOptions[0]
-    if (mbSelected) {
-        build.push({ category: 'motherboard', reason: 'Placa madre compatible seleccionada.', product: mbSelected })
-        remaining -= mbSelected.price
-    }
-
-    // 5. Storage
-    let stOptions = safe.filter(p => p.category.toLowerCase().includes('almacenamiento'))
-    if (storageType === 'NVMe SSD') {
-        stOptions = stOptions.filter(p => p.name.toLowerCase().includes('nvme') || p.name.toLowerCase().includes('m.2'))
-    } else if (storageType === 'SATA SSD') {
-        stOptions = stOptions.filter(p => !p.name.toLowerCase().includes('nvme') && !p.name.toLowerCase().includes('m.2'))
-    }
-    if (budget > 8000) {
-        stOptions.sort((a, b) => b.price - a.price)
-    } else {
-        stOptions.sort((a, b) => a.price - b.price)
-    }
-    const stSelected = stOptions.find(p => p.price <= remaining) || stOptions[0]
-    if (stSelected) {
-        build.push({ category: 'storage', reason: 'Almacenamiento compatible.', product: stSelected })
-        remaining -= stSelected.price
-    }
-
-    // 6. PSU
-    let psuOptions = safe.filter(p => p.category.toLowerCase().includes('fuentes de poder'))
-    if (budget > 8000) {
-        psuOptions.sort((a, b) => b.price - a.price)
-    } else {
-        psuOptions.sort((a, b) => a.price - b.price)
-    }
-    const psuSelected = psuOptions.find(p => p.price <= remaining) || psuOptions[0]
-    if (psuSelected) {
-        build.push({ category: 'psu', reason: 'Fuente de poder estable seleccionada.', product: psuSelected })
-        remaining -= psuSelected.price
-    }
-
-    // 7. Case
-    let caseOptions = safe.filter(p => p.category.toLowerCase().includes('cases & chasis'))
-    let caseSelected: any = null
-    if (specificCase && specificCase !== 'La IA elige') {
-        caseSelected = caseOptions.find(p => p.name.toLowerCase().includes(specificCase.toLowerCase()))
-    }
-    if (!caseSelected) {
-        if (budget > 8000) {
-            caseOptions.sort((a, b) => b.price - a.price)
-        } else {
-            caseOptions.sort((a, b) => a.price - b.price)
-        }
-        caseSelected = caseOptions.find(p => p.price <= remaining) || caseOptions[0]
-    }
-    if (caseSelected) {
-        build.push({ category: 'case', reason: 'Case para ensamble óptimo.', product: caseSelected })
-        remaining -= caseSelected.price
-    }
-
-    // 8. Cooling
-    let coolOptions = safe.filter(p => p.category.toLowerCase().includes('refrigeración'))
-    if (cooling === 'Aire') {
-        coolOptions = coolOptions.filter(p => !p.name.toLowerCase().includes('liquid') && !p.name.toLowerCase().includes('líquida') && !p.name.toLowerCase().includes('water'))
-    } else if (cooling === 'Líquida') {
-        coolOptions = coolOptions.filter(p => p.name.toLowerCase().includes('liquid') || p.name.toLowerCase().includes('líquida') || p.name.toLowerCase().includes('water'))
-    }
-    if (budget > 8000) {
-        coolOptions.sort((a, b) => b.price - a.price)
-    } else {
-        coolOptions.sort((a, b) => a.price - b.price)
-    }
-    const coolSelected = coolOptions.find(p => p.price <= remaining) || coolOptions[0]
-    if (coolSelected) {
-        build.push({ category: 'cooling', reason: 'Refrigeración compatible.', product: coolSelected })
-        remaining -= coolSelected.price
-    }
-
-    // 9. Peripherals
-    for (const per of peripherals) {
-        const targetCats = getCategoryForPeripheral(per)
-        let perOptions = safe.filter(p =>
-            targetCats.some(c => p.category.toLowerCase().includes(c))
-        )
-        perOptions = perOptions.filter(p => matchesPeripheralName(per, p.name))
-        if (budget > 8000) {
-            perOptions.sort((a, b) => b.price - a.price)
-        } else {
-            perOptions.sort((a, b) => a.price - b.price)
-        }
-        const perSelected = perOptions.find(p => p.price <= remaining) || perOptions[0]
-        if (perSelected) {
-            build.push({ category: perSelected.category, reason: `Periférico ${per} compatible.`, product: perSelected })
-            remaining -= perSelected.price
-        }
-    }
-
-    return { build, remaining }
+function isCPU(p: any, brand?: string): boolean {
+    if (!p.category.toLowerCase().includes('procesadores')) return false
+    if (!brand || brand === 'La IA elige') return true
+    const n = p.name.toLowerCase()
+    const isAMD = n.includes('ryzen') || n.includes('athlon')
+    return brand === 'AMD' ? isAMD : !isAMD
 }
+
+function isGPU(p: any, brand?: string): boolean {
+    if (!p.category.toLowerCase().includes('video')) return false
+    if (!brand || brand === 'La IA elige') return true
+    const n = p.name.toLowerCase()
+    const isNV = n.includes('rtx') || n.includes('geforce')
+    const isAMD = n.includes('rx') || n.includes('radeon')
+    if (brand === 'NVIDIA GeForce RTX') return isNV
+    if (brand === 'AMD Radeon RX') return isAMD
+    return true
+}
+
+function isRAM(p: any, gen?: string): boolean {
+    if (!p.category.toLowerCase().includes('memorias ram')) return false
+    if (!gen || gen === 'La IA elige') return true
+    const n = p.name.toLowerCase()
+    if (gen === 'DDR4') return n.includes('ddr4')
+    if (gen === 'DDR5') return n.includes('ddr5')
+    return true
+}
+
+function isMB(p: any, cpuProd: any | null, ramProd: any | null, cpuBrand?: string, ramGen?: string): boolean {
+    if (!p.category.toLowerCase().includes('placas madre')) return false
+    const nl = p.name.toLowerCase()
+
+    // Platform check
+    const platform = cpuProd
+        ? detectPlatform(cpuProd.name)
+        : cpuBrand === 'Intel' ? 'intel' : cpuBrand === 'AMD' ? 'amd' : null
+
+    const isAMDMb = nl.includes('b650') || nl.includes('x670') || nl.includes('b550') ||
+        nl.includes('a520') || nl.includes('a620') || nl.includes('am5') || nl.includes('am4')
+    const isIntelMb = nl.includes('h610') || nl.includes('b760') || nl.includes('z790') ||
+        nl.includes('b660') || nl.includes('z690')
+
+    if (platform === 'amd' && !isAMDMb) return false
+    if (platform === 'intel' && !isIntelMb) return false
+
+    // DDR compatibility — only reject if name EXPLICITLY states opposite generation
+    const isDDR5 = ramProd
+        ? ramProd.name.toLowerCase().includes('ddr5')
+        : ramGen === 'DDR5'
+
+    const mbOnlyDDR4 = nl.includes('ddr4') && !nl.includes('ddr5')
+    const mbOnlyDDR5 = nl.includes('ddr5') && !nl.includes('ddr4')
+
+    if (isDDR5 && mbOnlyDDR4) return false
+    if (!isDDR5 && mbOnlyDDR5) return false
+
+    return true
+}
+
+function isStorage(p: any, type?: string): boolean {
+    if (!p.category.toLowerCase().includes('almacenamiento')) return false
+    if (!type || type === 'La IA elige') return true
+    const isNVMe = p.name.toLowerCase().includes('nvme') || p.name.toLowerCase().includes('m.2')
+    if (type === 'NVMe SSD') return isNVMe
+    if (type === 'SATA SSD') return !isNVMe
+    return true
+}
+
+function isPSU(p: any): boolean {
+    return p.category.toLowerCase().includes('fuentes de poder')
+}
+
+function isCase(p: any): boolean {
+    return p.category.toLowerCase().includes('cases & chasis')
+}
+
+function isCooling(p: any, pref?: string): boolean {
+    if (!p.category.toLowerCase().includes('refrigeración')) return false
+    if (!pref || pref === 'La IA elige') return true
+    const n = p.name.toLowerCase()
+    const liquid = n.includes('liquid') || n.includes('líquida') || n.includes('water') || n.includes('aio')
+    if (pref === 'Aire') return !liquid
+    if (pref === 'Líquida') return liquid
+    return true
+}
+
+// ── Main handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
     try {
         const supabase = createClient()
-
         const body = await req.json()
         const {
             budget,
-            usage,
-            level,
+            usage = 'Gaming',
+            level = 'Intermedio',
             cooling,
             peripherals = [],
             specificCase,
@@ -275,425 +165,344 @@ export async function POST(req: NextRequest) {
         } = body
 
         const budgetNum = Number(budget)
+        if (!budgetNum || budgetNum < 1500) {
+            return NextResponse.json({ error: 'Presupuesto inválido. Mínimo S/ 1,500.' }, { status: 400 })
+        }
 
-        const { data: products = [], error } = await supabase
+        const isAPU = graphicsType === 'Solo APU (Gráficos Integrados)'
+        const preferHighEnd = budgetNum >= 2500
+
+        // ── Load stock ──────────────────────────────────────────────────
+        const { data: products = [], error: dbErr } = await supabase
             .from('products')
             .select('*')
             .gt('stock', 0)
 
-        if (error) throw new Error(error.message)
+        if (dbErr) throw new Error(dbErr.message)
+        const stock = (products ?? []) as any[]
 
-        const safe = products ?? []
+        // ── Pre-filter each category ────────────────────────────────────
+        // We pre-filter without knowing final CPU/RAM; MB is re-filtered after those picks.
+        const cpuOpts = stock.filter(p => isCPU(p, cpuBrand))
+        const gpuOpts = isAPU ? [] : stock.filter(p => isGPU(p, gpuBrand))
+        const ramOpts = stock.filter(p => isRAM(p, ramGen))
+        const allMbOpts = stock.filter(p => p.category.toLowerCase().includes('placas madre'))
+        const stOpts = stock.filter(p => isStorage(p, storageType))
+        const psuOpts = stock.filter(p => isPSU(p))
+        const caseOpts = stock.filter(p => isCase(p))
+        const coolOpts = stock.filter(p => isCooling(p, cooling))
 
-        // 🧠 IA DECIDE ESTRATEGIA EXCELENTE
-        const prompt = `
-Eres un experto en hardware de computadoras y ensamblaje de PCs de alto rendimiento.
-Tu tarea es recomendar la mejor configuración de componentes y periféricos compatible, optimizando el presupuesto del usuario y respetando estrictamente todas sus preferencias.
+        // ── Minimum cost per category (worst-case reserve) ──────────────
+        const minCPU = minPrice(cpuOpts)
+        const minGPU = minPrice(gpuOpts)
+        const minRAM = minPrice(ramOpts)
+        const minMB = minPrice(allMbOpts)   // rough; refined after picks
+        const minST = minPrice(stOpts)
+        const minPSU = minPrice(psuOpts)
+        const minCase = minPrice(caseOpts)
+        const minCool = minPrice(coolOpts)
 
-PRESUPUESTO MÁXIMO DEL USUARIO: S/ ${budgetNum} Soles
-USO PRINCIPAL: ${usage}
-NIVEL DE EXPERIENCIA: ${level}
+        // Check if a complete build is even possible
+        const coreMin = minCPU + minRAM + minMB + minST + minPSU + minCase + (isAPU ? 0 : minGPU)
+        if (coreMin === 0 || coreMin > budgetNum) {
+            const needed = coreMin || 3500
+            return NextResponse.json({
+                error: `Presupuesto insuficiente para una PC completa con el catálogo actual. Mínimo requerido: S/ ${needed}. Considera agregar componentes de menor gama al catálogo.`
+            }, { status: 400 })
+        }
+
+        // ── Peripheral min-cost reserves ────────────────────────────────
+        const perMins: number[] = peripherals.map((per: string) => {
+            const cats = getCategoryForPeripheral(per)
+            const opts = stock
+                .filter((p: any) => cats.some(c => p.category.toLowerCase().includes(c)))
+                .filter((p: any) => matchesPeripheralCategory(per, p.name))
+            return minPrice(opts)
+        })
+        const totalPerMin = perMins.reduce((a: number, b: number) => a + b, 0)
+
+        // ── Call Gemini for smart suggestions ───────────────────────────
+        const prompt = `Eres experto en ensamblaje de PCs para el mercado peruano. Selecciona componentes SOLO de la lista de productos disponibles.
+
+REGLA MÁXIMA: La suma total de precios NO puede superar S/ ${budgetNum}. Verifica la suma antes de responder.
+
+COMPATIBILIDAD OBLIGATORIA:
+- CPU Intel → Placa Intel (B760/Z790/H610/B660/Z690)
+- CPU AMD → Placa AMD (B650/X670/B550/A520/A620)
+- RAM DDR5 → Placa compatible DDR5; RAM DDR4 → Placa compatible DDR4
+- ${isAPU ? 'NO incluir GPU — build APU con gráficos integrados' : 'Incluir GPU dedicada'}
 
 PREFERENCIAS DEL USUARIO:
-1. Marca de Procesador (cpuBrand): ${cpuBrand || 'La IA elige'}. Si es "AMD", debes elegir un procesador AMD. Si es "Intel", debes elegir un procesador Intel.
-2. Generación de RAM (ramGen): ${ramGen || 'La IA elige'}. Si es "DDR4", debes elegir RAM DDR4 y una placa madre compatible con DDR4. Si es "DDR5", debes elegir RAM DDR5 y una placa madre compatible con DDR5.
-3. Tipo de Gráficos (graphicsType): ${graphicsType || 'Tarjeta Gráfica'}. Si es "Solo APU (Gráficos Integrados)", NO debes incluir ninguna tarjeta de video dedicada ("gpu"). En su lugar, elige un procesador que tenga gráficos integrados y asigna el resto del presupuesto a mejorar otros componentes (CPU, RAM, almacenamiento). Si es "Tarjeta Gráfica", DEBES incluir una tarjeta de video dedicada compatible.
-4. Marca de Tarjeta de Video (gpuBrand): ${gpuBrand || 'La IA elige'}. Si es "NVIDIA GeForce RTX", solo debes elegir GPUs NVIDIA RTX. Si es "AMD Radeon RX", solo debes elegir GPUs AMD RX. (Ignora esto si se seleccionó "Solo APU").
-5. Refrigeración (cooling): ${cooling || 'La IA elige'}. Si es "Aire", prioriza disipadores por aire. Si es "Líquida", prioriza refrigeración líquida.
-6. Case (specificCase): ${specificCase || 'La IA elige'}. Si no es "La IA elige", intenta elegir exactamente ese case si está disponible en la lista de productos.
-7. Tipo de Almacenamiento (storageType): ${storageType || 'La IA elige'}. Si es "NVMe SSD", prioriza almacenamiento M.2 NVMe de alta velocidad.
-8. Periféricos Adicionales Solicitados: ${peripherals.length > 0 ? peripherals.join(', ') : 'Ninguno'}. DEBES incluir obligatoriamente un producto compatible de la lista de productos para cada uno de los periféricos seleccionados por el usuario. El precio de estos periféricos DEBE sumarse y caber dentro del presupuesto máximo.
+- CPU: ${cpuBrand || 'libre'}
+- RAM: ${ramGen || 'libre'}
+- GPU: ${isAPU ? 'NO INCLUIR' : (gpuBrand || 'libre')}
+- Refrigeración: ${cooling || 'libre'}
+- Case: ${specificCase !== 'La IA elige' ? specificCase : 'libre'}
+- Almacenamiento: ${storageType || 'libre'}
+- Periféricos requeridos: ${peripherals.length > 0 ? peripherals.join(', ') : 'ninguno'}
+- Uso: ${usage} | Nivel: ${level}
 
-LISTA DE PRODUCTOS DISPONIBLES EN STOCK (con IDs, nombres, categorías y precios):
-${JSON.stringify(safe.map(p => ({ id: p.id, name: p.name, category: p.category, price: p.price })))}
+PRODUCTOS DISPONIBLES (id · nombre · categoría · precio S/):
+${JSON.stringify(stock.map(p => ({ id: p.id, name: p.name, category: p.category, price: p.price })))}
 
-INSTRUCCIONES CLAVE DE OPTIMIZACIÓN:
-- Distribuya el presupuesto de forma inteligente para evitar cuellos de botella (bottlenecks). Para presupuestos altos (ej. S/ 8,000+ o S/ 12,000+), elige componentes de gama alta (CPUs potentes, GPUs RTX 4070/4080 o similares, placas TUF/ROG, RAMs veloces, SSDs rápidos de alta capacidad) y no te conformes con los componentes más baratos. ¡Aprovecha al máximo el presupuesto del usuario sin sobrepasarlo!
-- Asegúrate de que las categorías recomendadas correspondan a los productos en stock:
-  - "cpu": Procesadores
-  - "gpu": Tarjetas de Video (No incluir si se seleccionó "Solo APU")
-  - "ram": Memorias RAM
-  - "motherboard": Placas Madre
-  - "storage": Almacenamiento
-  - "psu": Fuentes de Poder
-  - "case": Cases & Chasis
-  - "cooling": Refrigeración
-  - Si el usuario solicitó periféricos en la lista, incluye una sugerencia para cada uno usando su nombre exacto en minúsculas como categoría (ej. "mouse", "teclado", "micrófono", "auriculares", "monitor").
-
-Devuelve ÚNICAMENTE un objeto JSON válido con la siguiente estructura (sin explicaciones, sin markdown, solo el objeto JSON):
+Responde ÚNICAMENTE con JSON válido, sin markdown ni texto extra:
 {
   "suggestions": [
-    {
-      "category": "cpu",
-      "store_product_id": "id_del_producto",
-      "reason": "Razón técnica detallada de por qué este producto es ideal para este presupuesto, uso y preferencias."
-    },
-    {
-      "category": "gpu",
-      "store_product_id": "id_del_producto",
-      "reason": "Razón técnica..."
-    }
+    { "category": "cpu", "store_product_id": "uuid-exacto", "reason": "razón técnica breve" },
+    { "category": "gpu", "store_product_id": "uuid-exacto", "reason": "razón" },
+    { "category": "ram", "store_product_id": "uuid-exacto", "reason": "razón" },
+    { "category": "motherboard", "store_product_id": "uuid-exacto", "reason": "razón" },
+    { "category": "storage", "store_product_id": "uuid-exacto", "reason": "razón" },
+    { "category": "psu", "store_product_id": "uuid-exacto", "reason": "razón" },
+    { "category": "case", "store_product_id": "uuid-exacto", "reason": "razón" },
+    { "category": "cooling", "store_product_id": "uuid-exacto", "reason": "razón" }
   ],
-  "summary": "Resumen general de la build explicando la potencia del ensamble y cómo se adapta al presupuesto.",
-  "tips": [
-    "Consejo de optimización 1",
-    "Consejo de optimización 2"
-  ]
-}
-`
+  "summary": "Resumen de la build",
+  "tips": ["tip 1", "tip 2"]
+}`
 
-        const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        temperature: 0.3,
-                        maxOutputTokens: 2000,
-                    },
-                }),
-            }
-        )
+        let aiSuggestions: Suggestion[] = []
+        let aiSummary = ''
+        let aiTips: string[] = []
 
-        const json = await res.json()
-        const text = json?.candidates?.[0]?.content?.parts?.[0]?.text
-
-        if (!text) {
-            const fb = fallbackBuild(safe, budgetNum, body)
-            return NextResponse.json({
-                build: fb.build,
-                total: fb.build.reduce((a, b) => a + b.product.price, 0),
-                remainingBudget: fb.remaining,
-                summary: 'Fallback automático',
-                tips: [],
-            })
-        }
-
-        let result: { suggestions?: Suggestion[]; summary?: string; tips?: string[] } = {}
         try {
-            result = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || '{}')
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
+                    }),
+                }
+            )
+            const json = await res.json()
+            const text = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+            if (text) {
+                const cleaned = text.match(/\{[\s\S]*\}/)?.[0] ?? '{}'
+                const parsed = JSON.parse(cleaned)
+                aiSuggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : []
+                aiSummary = parsed.summary ?? ''
+                aiTips = Array.isArray(parsed.tips) ? parsed.tips : []
+            }
         } catch {
-            result = { suggestions: [] }
+            // Proceed with fallback selection
         }
 
+        // ── Reserve-based component selection ───────────────────────────
+        //
+        // ALGORITHM:
+        //   For each component in order, compute:
+        //     maxForThis = remaining - sum_of_min_costs_of_everything_still_to_buy
+        //   Then pick the best (most expensive = highest quality) product within maxForThis.
+        //
+        // This guarantees:
+        //   1. Total NEVER exceeds budget (budget constraint is structural, not iterative)
+        //   2. Budget is fully utilized (we spend as much as possible at each step)
+        //   3. No iterative retry loop needed
+
+        const build: { category: string; product: any }[] = []
         let remaining = budgetNum
-        const build: any[] = []
 
-        const suggestions = result.suggestions || []
-        const filledCategories = new Set<string>()
-
-        // 1. Procesador (CPU)
-        const cpuS = suggestions.find(s => s.category === 'cpu')
-        let cpuProduct = safe.find(p => p.id === cpuS?.store_product_id)
-        if (cpuProduct) {
-            const isAMD = cpuProduct.name.toLowerCase().includes('ryzen') || cpuProduct.name.toLowerCase().includes('amd')
-            if (cpuBrand === 'AMD' && !isAMD) cpuProduct = undefined
-            if (cpuBrand === 'Intel' && isAMD) cpuProduct = undefined
-        }
-        if (!cpuProduct) {
-            let cpuOptions = safe.filter(p => p.category.toLowerCase().includes('procesadores'))
-            if (cpuBrand === 'AMD') {
-                cpuOptions = cpuOptions.filter(p => p.name.toLowerCase().includes('ryzen') || p.name.toLowerCase().includes('amd'))
-            } else if (cpuBrand === 'Intel') {
-                cpuOptions = cpuOptions.filter(p => !p.name.toLowerCase().includes('ryzen') && !p.name.toLowerCase().includes('amd'))
-            }
-            if (budgetNum > 8000) {
-                cpuOptions.sort((a, b) => b.price - a.price)
-            } else {
-                cpuOptions.sort((a, b) => a.price - b.price)
-            }
-            cpuProduct = cpuOptions.find(p => p.price <= budgetNum * 0.25) || cpuOptions[0]
-        }
-        if (cpuProduct) {
-            build.push({
-                category: 'cpu',
-                reason: cpuS?.reason || 'Procesador potente seleccionado de forma inteligente.',
-                product: cpuProduct
-            })
-            remaining -= cpuProduct.price
-            filledCategories.add('cpu')
+        // Helper: return AI-suggested product for a category if it passes validation
+        const getAI = (category: string, maxAllowed: number, filter: (p: any) => boolean): any | undefined => {
+            const sug = aiSuggestions.find(s => s.category === category)
+            if (!sug) return undefined
+            const p = stock.find((x: any) => x.id === sug.store_product_id)
+            if (!p || Number(p.price) > maxAllowed || !filter(p)) return undefined
+            return p
         }
 
-        // 2. Tarjeta Gráfica (GPU) (si no es APU)
-        const isAPU = graphicsType === 'Solo APU (Gráficos Integrados)'
-        if (!isAPU) {
-            const gpuS = suggestions.find(s => s.category === 'gpu')
-            let gpuProduct = safe.find(p => p.id === gpuS?.store_product_id)
-            if (gpuProduct) {
-                const isNVIDIA = gpuProduct.name.toLowerCase().includes('rtx') || gpuProduct.name.toLowerCase().includes('geforce')
-                const isAMD = gpuProduct.name.toLowerCase().includes('rx') || gpuProduct.name.toLowerCase().includes('radeon')
-                if (gpuBrand === 'NVIDIA GeForce RTX' && !isNVIDIA) gpuProduct = undefined
-                if (gpuBrand === 'AMD Radeon RX' && !isAMD) gpuProduct = undefined
+        const add = (category: string, product: any) => {
+            build.push({ category, product })
+            remaining -= Number(product.price)
+        }
+
+        // ── 1. CPU ──────────────────────────────────────────────────────
+        {
+            const reserve = minGPU + minRAM + minMB + minST + minPSU + minCase + minCool + totalPerMin
+            const max = Math.max(0, remaining - reserve)
+            const filter = (p: any) => isCPU(p, cpuBrand)
+            const product = getAI('cpu', max, filter)
+                ?? pickBest(cpuOpts, max, preferHighEnd)
+                ?? pickBest(cpuOpts, remaining - (reserve - minMB - minRAM), false)
+            if (product) add('cpu', product)
+        }
+
+        const cpuProduct = build.find(b => b.category === 'cpu')?.product ?? null
+
+        // ── 2. GPU ──────────────────────────────────────────────────────
+        if (!isAPU && gpuOpts.length > 0) {
+            const reserve = minRAM + minMB + minST + minPSU + minCase + minCool + totalPerMin
+            const max = Math.max(0, remaining - reserve)
+            const filter = (p: any) => isGPU(p, gpuBrand)
+            const product = getAI('gpu', max, filter)
+                ?? pickBest(gpuOpts, max, preferHighEnd)
+                ?? pickBest(gpuOpts, remaining - (reserve - minRAM), false)
+            if (product) add('gpu', product)
+        }
+
+        // ── 3. RAM ──────────────────────────────────────────────────────
+        {
+            const reserve = minMB + minST + minPSU + minCase + minCool + totalPerMin
+            const max = Math.max(0, remaining - reserve)
+            const filter = (p: any) => isRAM(p, ramGen)
+            const product = getAI('ram', max, filter)
+                ?? pickBest(ramOpts, max, preferHighEnd)
+                ?? pickBest(ramOpts, remaining - (reserve - minMB), false)
+            if (product) add('ram', product)
+        }
+
+        const ramProduct = build.find(b => b.category === 'ram')?.product ?? null
+
+        // ── 4. Motherboard ──────────────────────────────────────────────
+        {
+            const mbOpts = allMbOpts.filter(p => isMB(p, cpuProduct, ramProduct, cpuBrand, ramGen))
+            const reserve = minST + minPSU + minCase + minCool + totalPerMin
+            const max = Math.max(0, remaining - reserve)
+            const filter = (p: any) => isMB(p, cpuProduct, ramProduct, cpuBrand, ramGen)
+            const product = getAI('motherboard', max, filter)
+                ?? pickBest(mbOpts, max, preferHighEnd)
+                ?? pickBest(mbOpts, remaining - (reserve - minST), false)
+            if (product) add('motherboard', product)
+        }
+
+        // ── 5. Storage ──────────────────────────────────────────────────
+        {
+            const reserve = minPSU + minCase + minCool + totalPerMin
+            const max = Math.max(0, remaining - reserve)
+            const filter = (p: any) => isStorage(p, storageType)
+            const product = getAI('storage', max, filter)
+                ?? pickBest(stOpts, max, preferHighEnd)
+                ?? pickBest(stOpts, remaining - (reserve - minPSU), false)
+            if (product) add('storage', product)
+        }
+
+        // ── 6. PSU ──────────────────────────────────────────────────────
+        {
+            const reserve = minCase + minCool + totalPerMin
+            const max = Math.max(0, remaining - reserve)
+            const filter = isPSU
+            const product = getAI('psu', max, filter)
+                ?? pickBest(psuOpts, max, preferHighEnd)
+                ?? pickBest(psuOpts, remaining - (reserve - minCase), false)
+            if (product) add('psu', product)
+        }
+
+        // ── 7. Case ─────────────────────────────────────────────────────
+        {
+            const reserve = minCool + totalPerMin
+            const max = Math.max(0, remaining - reserve)
+            const filter = isCase
+
+            let product: any = getAI('case', max, filter)
+            if (!product && specificCase && specificCase !== 'La IA elige') {
+                product = caseOpts.find(p =>
+                    p.name.toLowerCase().includes(specificCase.toLowerCase()) &&
+                    Number(p.price) <= max
+                ) ?? null
             }
-            if (!gpuProduct) {
-                let gpuOptions = safe.filter(p => p.category.toLowerCase().includes('video'))
-                if (gpuBrand === 'NVIDIA GeForce RTX') {
-                    gpuOptions = gpuOptions.filter(p => p.name.toLowerCase().includes('rtx') || p.name.toLowerCase().includes('geforce'))
-                } else if (gpuBrand === 'AMD Radeon RX') {
-                    gpuOptions = gpuOptions.filter(p => p.name.toLowerCase().includes('rx') || p.name.toLowerCase().includes('radeon'))
+            product = product
+                ?? pickBest(caseOpts, max, preferHighEnd)
+                ?? pickBest(caseOpts, remaining - minCool, false)
+            if (product) add('case', product)
+        }
+
+        // ── 8. Cooling ──────────────────────────────────────────────────
+        {
+            const max = Math.max(0, remaining - totalPerMin)
+            if (max >= minCool && coolOpts.length > 0) {
+                const filter = (p: any) => isCooling(p, cooling)
+                const product = getAI('cooling', max, filter)
+                    ?? pickBest(coolOpts, max, preferHighEnd)
+                if (product) add('cooling', product)
+            }
+        }
+
+        // ── 9. Peripherals ──────────────────────────────────────────────
+        for (let i = 0; i < peripherals.length; i++) {
+            const per = peripherals[i] as string
+            if (remaining <= 0) break
+
+            // Reserve minimum for peripherals that come after this one
+            const futurePerReserve = perMins.slice(i + 1).reduce((a: number, b: number) => a + b, 0)
+            const max = Math.max(0, remaining - futurePerReserve)
+
+            const cats = getCategoryForPeripheral(per)
+            const opts = stock
+                .filter((p: any) => cats.some(c => p.category.toLowerCase().includes(c)))
+                .filter((p: any) => matchesPeripheralCategory(per, p.name))
+
+            // Try AI suggestion first
+            const perSug = aiSuggestions.find(s => s.category.toLowerCase() === per.toLowerCase())
+            let perProduct: any = null
+            if (perSug) {
+                const candidate = stock.find((p: any) => p.id === perSug.store_product_id)
+                if (candidate && Number(candidate.price) <= max && matchesPeripheralCategory(per, candidate.name)) {
+                    perProduct = candidate
                 }
-                if (budgetNum > 8000) {
-                    gpuOptions.sort((a, b) => b.price - a.price)
-                } else {
-                    gpuOptions.sort((a, b) => a.price - b.price)
-                }
-                gpuProduct = gpuOptions.find(p => p.price <= remaining * 0.5) || gpuOptions[0]
             }
-            if (gpuProduct && gpuProduct.price <= remaining) {
-                build.push({
-                    category: 'gpu',
-                    reason: gpuS?.reason || 'Tarjeta de video de alta gama recomendada.',
-                    product: gpuProduct
-                })
-                remaining -= gpuProduct.price
-                filledCategories.add('gpu')
+            perProduct = perProduct ?? pickBest(opts, max, preferHighEnd) ?? pickBest(opts, remaining, false)
+
+            if (perProduct && Number(perProduct.price) <= remaining) {
+                add(perProduct.category, perProduct)
             }
         }
 
-        // 3. Memorias RAM
-        const ramS = suggestions.find(s => s.category === 'ram')
-        let ramProduct = safe.find(p => p.id === ramS?.store_product_id)
-        if (ramProduct) {
-            const isDDR4 = ramProduct.name.toLowerCase().includes('ddr4')
-            const isDDR5 = ramProduct.name.toLowerCase().includes('ddr5')
-            if (ramGen === 'DDR4' && !isDDR4) ramProduct = undefined
-            if (ramGen === 'DDR5' && !isDDR5) ramProduct = undefined
-        }
-        if (!ramProduct) {
-            let ramOptions = safe.filter(p => p.category.toLowerCase().includes('memorias ram'))
-            if (ramGen === 'DDR4') {
-                ramOptions = ramOptions.filter(p => p.name.toLowerCase().includes('ddr4'))
-            } else if (ramGen === 'DDR5') {
-                ramOptions = ramOptions.filter(p => p.name.toLowerCase().includes('ddr5'))
-            }
-            if (budgetNum > 8000) {
-                ramOptions.sort((a, b) => b.price - a.price)
-            } else {
-                ramOptions.sort((a, b) => a.price - b.price)
-            }
-            ramProduct = ramOptions.find(p => p.price <= remaining) || ramOptions[0]
-        }
-        if (ramProduct) {
-            build.push({
-                category: 'ram',
-                reason: ramS?.reason || 'Memoria RAM de alto rendimiento para multitarea fluida.',
-                product: ramProduct
-            })
-            remaining -= ramProduct.price
-            filledCategories.add('ram')
+        // ── Final validation (safety net — should never fire) ───────────
+        const total = build.reduce((sum, b) => sum + Number(b.product.price), 0)
+        if (total > budgetNum) {
+            // This should be mathematically impossible with the reserve approach,
+            // but guard against floating-point edge cases
+            return NextResponse.json({
+                error: 'Error interno: el total calculado superó el presupuesto.',
+                detail: `S/${total} > S/${budgetNum}`
+            }, { status: 500 })
         }
 
-        // 4. Placa Madre (Motherboard) (con compatibilidad de plataforma y memoria)
-        const mbS = suggestions.find(s => s.category === 'motherboard')
-        let mbProduct = safe.find(p => p.id === mbS?.store_product_id)
-        if (mbProduct) {
-            const platform = cpuProduct ? detectPlatform(cpuProduct.name) : 'amd'
-            const nameLower = mbProduct.name.toLowerCase()
-            const isAMDPlat = nameLower.includes('b650') || nameLower.includes('x670') || nameLower.includes('b550') || nameLower.includes('a520') || nameLower.includes('a620') || nameLower.includes('am5') || nameLower.includes('am4')
-            const isIntelPlat = nameLower.includes('h610') || nameLower.includes('b760') || nameLower.includes('z790') || nameLower.includes('b660') || nameLower.includes('z690')
-            if (platform === 'amd' && !isAMDPlat) mbProduct = undefined
-            if (platform === 'intel' && !isIntelPlat) mbProduct = undefined
-            
-            if (mbProduct) {
-                const isDDR5 = ramProduct ? ramProduct.name.toLowerCase().includes('ddr5') : (ramGen === 'DDR5')
-                const isMbDDR4 = nameLower.includes('ddr4')
-                const isMbDDR5 = nameLower.includes('ddr5') || !isMbDDR4
-                if (isDDR5 && isMbDDR4) mbProduct = undefined
-                if (!isDDR5 && isMbDDR5) mbProduct = undefined
-            }
-        }
-        if (!mbProduct) {
-            let mbOptions = safe.filter(p => p.category.toLowerCase().includes('placas madre'))
-            const platform = cpuProduct ? detectPlatform(cpuProduct.name) : 'amd'
-            if (platform === 'amd') {
-                mbOptions = mbOptions.filter(p => p.name.toLowerCase().includes('b650') || p.name.toLowerCase().includes('x670') || p.name.toLowerCase().includes('b550') || p.name.toLowerCase().includes('a520') || p.name.toLowerCase().includes('a620') || p.name.toLowerCase().includes('am5') || p.name.toLowerCase().includes('am4'))
-            } else {
-                mbOptions = mbOptions.filter(p => p.name.toLowerCase().includes('h610') || p.name.toLowerCase().includes('b760') || p.name.toLowerCase().includes('z790') || p.name.toLowerCase().includes('b660') || p.name.toLowerCase().includes('z690'))
-            }
-            const isDDR5 = ramProduct ? ramProduct.name.toLowerCase().includes('ddr5') : (ramGen === 'DDR5')
-            if (isDDR5) {
-                mbOptions = mbOptions.filter(p => p.name.toLowerCase().includes('ddr5') || !p.name.toLowerCase().includes('ddr4'))
-            } else {
-                mbOptions = mbOptions.filter(p => p.name.toLowerCase().includes('ddr4'))
-            }
-            if (budgetNum > 8000) {
-                mbOptions.sort((a, b) => b.price - a.price)
-            } else {
-                mbOptions.sort((a, b) => a.price - b.price)
-            }
-            mbProduct = mbOptions.find(p => p.price <= remaining) || mbOptions[0]
-        }
-        if (mbProduct) {
-            build.push({
-                category: 'motherboard',
-                reason: mbS?.reason || 'Placa madre robusta y compatible con la plataforma elegida.',
-                product: mbProduct
-            })
-            remaining -= mbProduct.price
-            filledCategories.add('motherboard')
+        if (build.length === 0 || !build.some(b => b.category === 'cpu')) {
+            return NextResponse.json({
+                error: 'La IA no encontró componentes suficientes en stock. Prueba otro presupuesto o sincroniza el catálogo.'
+            }, { status: 400 })
         }
 
-        // 5. Almacenamiento (Storage)
-        const storageS = suggestions.find(s => s.category === 'storage')
-        let storageProduct = safe.find(p => p.id === storageS?.store_product_id)
-        if (storageProduct) {
-            const isNVMe = storageProduct.name.toLowerCase().includes('nvme') || storageProduct.name.toLowerCase().includes('m.2')
-            if (storageType === 'NVMe SSD' && !isNVMe) storageProduct = undefined
-            if (storageType === 'SATA SSD' && isNVMe) storageProduct = undefined
-        }
-        if (!storageProduct) {
-            let stOptions = safe.filter(p => p.category.toLowerCase().includes('almacenamiento'))
-            if (storageType === 'NVMe SSD') {
-                stOptions = stOptions.filter(p => p.name.toLowerCase().includes('nvme') || p.name.toLowerCase().includes('m.2'))
-            } else if (storageType === 'SATA SSD') {
-                stOptions = stOptions.filter(p => !p.name.toLowerCase().includes('nvme') && !p.name.toLowerCase().includes('m.2'))
-            }
-            if (budgetNum > 8000) {
-                stOptions.sort((a, b) => b.price - a.price)
-            } else {
-                stOptions.sort((a, b) => a.price - b.price)
-            }
-            storageProduct = stOptions.find(p => p.price <= remaining) || stOptions[0]
-        }
-        if (storageProduct) {
-            build.push({
-                category: 'storage',
-                reason: storageS?.reason || 'Unidad de almacenamiento rápida y estable.',
-                product: storageProduct
-            })
-            remaining -= storageProduct.price
-            filledCategories.add('storage')
+        // ── Build reason messages ───────────────────────────────────────
+        const defaultReasons: Record<string, string> = {
+            cpu: `Procesador óptimo para ${usage} dentro del presupuesto.`,
+            gpu: `Tarjeta gráfica equilibrada para ${usage}.`,
+            ram: 'RAM seleccionada por velocidad y compatibilidad con la placa.',
+            motherboard: 'Placa madre compatible con CPU y RAM seleccionados.',
+            storage: 'Almacenamiento rápido y de alta capacidad.',
+            psu: 'Fuente de poder estable con margen de seguridad.',
+            case: 'Case con buena ventilación para los componentes.',
+            cooling: 'Refrigeración adecuada para mantener temperaturas óptimas.',
         }
 
-        // 6. Fuente de Poder (PSU)
-        const psuS = suggestions.find(s => s.category === 'psu')
-        let psuProduct = safe.find(p => p.id === psuS?.store_product_id)
-        if (!psuProduct) {
-            let psuOptions = safe.filter(p => p.category.toLowerCase().includes('fuentes de poder'))
-            if (budgetNum > 8000) {
-                psuOptions.sort((a, b) => b.price - a.price)
-            } else {
-                psuOptions.sort((a, b) => a.price - b.price)
-            }
-            psuProduct = psuOptions.find(p => p.price <= remaining) || psuOptions[0]
-        }
-        if (psuProduct) {
-            build.push({
-                category: 'psu',
-                reason: psuS?.reason || 'Fuente de poder de alta eficiencia con protección eléctrica completa.',
-                product: psuProduct
-            })
-            remaining -= psuProduct.price
-            filledCategories.add('psu')
+        const getReason = (category: string): string => {
+            const aiMatch = aiSuggestions.find(s => s.category === category)
+            return aiMatch?.reason ?? defaultReasons[category] ?? 'Periférico compatible con la build.'
         }
 
-        // 7. Case & Chasis
-        const caseS = suggestions.find(s => s.category === 'case')
-        let caseProduct = safe.find(p => p.id === caseS?.store_product_id)
-        if (!caseProduct) {
-            let caseOptions = safe.filter(p => p.category.toLowerCase().includes('cases & chasis'))
-            if (specificCase && specificCase !== 'La IA elige') {
-                const specificMatch = caseOptions.find(p => p.name.toLowerCase().includes(specificCase.toLowerCase()))
-                if (specificMatch) caseProduct = specificMatch
-            }
-            if (!caseProduct) {
-                if (budgetNum > 8000) {
-                    caseOptions.sort((a, b) => b.price - a.price)
-                } else {
-                    caseOptions.sort((a, b) => a.price - b.price)
-                }
-                caseProduct = caseOptions.find(p => p.price <= remaining) || caseOptions[0]
-            }
-        }
-        if (caseProduct) {
-            build.push({
-                category: 'case',
-                reason: caseS?.reason || 'Chasis espacioso con excelente ventilación y estética prémium.',
-                product: caseProduct
-            })
-            remaining -= caseProduct.price
-            filledCategories.add('case')
-        }
-
-        // 8. Refrigeración (Cooling)
-        const coolingS = suggestions.find(s => s.category === 'cooling')
-        let coolingProduct = safe.find(p => p.id === coolingS?.store_product_id)
-        if (coolingProduct) {
-            const isLiquid = coolingProduct.name.toLowerCase().includes('liquid') || coolingProduct.name.toLowerCase().includes('líquida') || coolingProduct.name.toLowerCase().includes('water')
-            if (cooling === 'Aire' && isLiquid) coolingProduct = undefined
-            if (cooling === 'Líquida' && !isLiquid) coolingProduct = undefined
-        }
-        if (!coolingProduct) {
-            let coolOptions = safe.filter(p => p.category.toLowerCase().includes('refrigeración'))
-            if (cooling === 'Aire') {
-                coolOptions = coolOptions.filter(p => !p.name.toLowerCase().includes('liquid') && !p.name.toLowerCase().includes('líquida') && !p.name.toLowerCase().includes('water'))
-            } else if (cooling === 'Líquida') {
-                coolOptions = coolOptions.filter(p => p.name.toLowerCase().includes('liquid') || p.name.toLowerCase().includes('líquida') || p.name.toLowerCase().includes('water'))
-            }
-            if (budgetNum > 8000) {
-                coolOptions.sort((a, b) => b.price - a.price)
-            } else {
-                coolOptions.sort((a, b) => a.price - b.price)
-            }
-            coolingProduct = coolOptions.find(p => p.price <= remaining) || coolOptions[0]
-        }
-        if (coolingProduct) {
-            build.push({
-                category: 'cooling',
-                reason: coolingS?.reason || 'Solución de refrigeración idónea para mantener bajas temperaturas.',
-                product: coolingProduct
-            })
-            remaining -= coolingProduct.price
-            filledCategories.add('cooling')
-        }
-
-        // 9. Periféricos Adicionales
-        for (const per of peripherals) {
-            const perS = suggestions.find(s => s.category.toLowerCase() === per.toLowerCase())
-            let perProduct = safe.find(p => p.id === perS?.store_product_id)
-
-            if (!perProduct) {
-                const targetCats = getCategoryForPeripheral(per)
-                let perOptions = safe.filter(p =>
-                    targetCats.some(c => p.category.toLowerCase().includes(c))
-                )
-                perOptions = perOptions.filter(p => matchesPeripheralName(per, p.name))
-                if (budgetNum > 8000) {
-                    perOptions.sort((a, b) => b.price - a.price)
-                } else {
-                    perOptions.sort((a, b) => a.price - b.price)
-                }
-                perProduct = perOptions.find(p => p.price <= remaining) || perOptions[0]
-            }
-
-            if (perProduct) {
-                build.push({
-                    category: perProduct.category,
-                    reason: perS?.reason || `Periférico de alta calidad tipo ${per} compatible con tu configuración.`,
-                    product: perProduct
-                })
-                remaining -= perProduct.price
-                filledCategories.add(per.toLowerCase())
-            }
-        }
-
-        const total = build.reduce((a, b) => a + b.product.price, 0)
+        const finalBuild = build.map(item => ({
+            category: item.category,
+            reason: getReason(item.category),
+            product: item.product,
+        }))
 
         return NextResponse.json({
-            build,
+            build: finalBuild,
             total,
-            remainingBudget: remaining,
-            summary: result.summary || 'Build optimizada con control de compatibilidad de alta calidad',
-            tips: result.tips || [],
+            remainingBudget: budgetNum - total,
+            summary: aiSummary || 'Build optimizada respetando presupuesto y compatibilidad',
+            tips: aiTips.length > 0 ? aiTips : [
+                'Verifica compatibilidad física (tamaño de case vs placa madre) antes de comprar.',
+                `Con S/${budgetNum - total} restantes puedes agregar más almacenamiento o mejor refrigeración.`,
+            ],
         })
     } catch (err) {
         return NextResponse.json(
-            {
-                error: 'PC Builder error',
-                detail: err instanceof Error ? err.message : 'unknown',
-            },
+            { error: 'PC Builder error', detail: err instanceof Error ? err.message : 'unknown' },
             { status: 500 }
         )
     }
