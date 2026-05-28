@@ -1,6 +1,6 @@
 # TechBuilds 🖥️
 ### Tienda online de componentes PC + PC Builder con IA
-> Proyecto académico — Ingeniería de Software con IA · v0.2.0
+> Proyecto académico — Ingeniería de Software con IA · v0.5.0
 
 ---
 
@@ -124,4 +124,4 @@ src/
 
 ---
 
-*Desarrollado por Xakhy · Lima, Perú · 2025*
+*Desarrollado por Xakhy · Lima, Perú · 2026*
