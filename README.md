@@ -19,7 +19,7 @@ Tienda online de componentes PC y tecnología dirigida a gamers principiantes en
 - 📄 **Voucher PDF** — se genera automáticamente al finalizar la compra con jsPDF
 - 🔐 **Panel de administración** — gestión de productos y órdenes
 - 🌙 **Modo oscuro/claro** — switcher integrado en el navbar con next-themes
-- 🎞️ **Animaciones** — transiciones fluidas con Framer Motion
+- 🎞️ **Animaciones** — transiciones y hover effects con Tailwind CSS Animate
 
 ---
 
@@ -30,7 +30,7 @@ Tienda online de componentes PC y tecnología dirigida a gamers principiantes en
 | Framework | Next.js 14.2 (App Router) |
 | Lenguaje | TypeScript 5 |
 | Estilos | Tailwind CSS 3 + shadcn/ui |
-| Animaciones | Framer Motion 12 |
+| Animaciones | Tailwind CSS Animate + tailwindcss-animate |
 | Base de datos | Supabase (PostgreSQL + Auth) |
 | IA | Google Gemini 2.0 Flash API |
 | PDF | jsPDF 4 |
