@@ -6,18 +6,20 @@
 
 ## ¿Qué es?
 
-Tienda online de componentes PC y tecnología dirigida a gamers principiantes en Perú, con un **PC Builder inteligente** integrado que usa IA para armar builds completas según el presupuesto y necesidades del usuario.
+Tienda online de componentes PC y tecnología dirigida a gamers principiantes en Perú, con un **PC Builder inteligente** integrado que usa la API de Google Gemini para armar builds completas y compatibles según el presupuesto, uso y nivel del usuario.
 
 ---
 
 ## Características
 
 - 🛍️ **Catálogo completo** — componentes PC con filtros por categoría y precio
-- 🤖 **PC Builder con IA** — genera builds compatibles según presupuesto, uso y nivel
-- 🛒 **Carrito inteligente** — persiste sin login (sessionStorage) y con login (DB)
+- 🤖 **PC Builder con IA** — genera builds compatibles según presupuesto, uso, nivel, marca de CPU/GPU, generación de RAM y tipo de gráficos
+- 🛒 **Carrito inteligente** — persiste sin login (sessionStorage) y con login (Supabase DB)
 - 👤 **Sistema de cuentas** — registro, login, perfil y panel de órdenes con Supabase Auth
-- 📄 **Voucher PDF** — se genera automáticamente al finalizar la compra
+- 📄 **Voucher PDF** — se genera automáticamente al finalizar la compra con jsPDF
 - 🔐 **Panel de administración** — gestión de productos y órdenes
+- 🌙 **Modo oscuro/claro** — switcher integrado en el navbar con next-themes
+- 🎞️ **Animaciones** — transiciones fluidas con Framer Motion
 
 ---
 
@@ -25,13 +27,16 @@ Tienda online de componentes PC y tecnología dirigida a gamers principiantes en
 
 | Capa | Tecnología |
 |---|---|
-| Framework | Next.js 14 (App Router) |
-| Lenguaje | TypeScript |
-| Estilos | Tailwind CSS + shadcn/ui |
+| Framework | Next.js 14.2 (App Router) |
+| Lenguaje | TypeScript 5 |
+| Estilos | Tailwind CSS 3 + shadcn/ui |
+| Animaciones | Framer Motion 12 |
 | Base de datos | Supabase (PostgreSQL + Auth) |
-| IA | Google Gemini API |
-| PDF | jsPDF |
-| Estado | Zustand |
+| IA | Google Gemini 2.0 Flash API |
+| PDF | jsPDF 4 |
+| Estado global | Zustand 5 |
+| Notificaciones | Sonner |
+| Iconos | Lucide React |
 
 ---
 
@@ -87,13 +92,27 @@ src/
 ├── app/
 │   ├── (auth)/          # Login y registro
 │   ├── admin/           # Panel de administración
-│   ├── api/             # Endpoints (pc-builder, sync-images, etc.)
+│   ├── api/
+│   │   ├── admin/       # Endpoints de admin (productos, órdenes)
+│   │   └── pc-builder/  # Endpoint de generación de builds con IA
+│   ├── auth/            # Callbacks de autenticación Supabase
 │   ├── checkout/        # Flujo de compra
-│   ├── ordenes/         # Historial de órdenes
+│   ├── ordenes/         # Historial de órdenes del usuario
 │   ├── perfil/          # Perfil de usuario
+│   ├── pc-builder/      # Página del PC Builder IA
 │   └── productos/       # Catálogo y detalle de producto
-├── components/          # Componentes reutilizables
-└── lib/                 # Utilidades, store, supabase, etc.
+├── components/
+│   ├── ui/              # Componentes base (shadcn/ui)
+│   ├── Navbar.tsx
+│   ├── CartDrawer.tsx
+│   ├── HeroSection.tsx
+│   ├── FeaturedProducts.tsx
+│   ├── CategoriesSection.tsx
+│   ├── PCBuilderHomeBlock.tsx
+│   ├── PCBuilderTeaser.tsx
+│   ├── ProductCard.tsx
+│   └── VoucherGenerator.tsx
+└── lib/                 # Utilidades, store Zustand, cliente Supabase
 ```
 
 ---
