@@ -18,7 +18,7 @@ import {
 
 export function Navbar() {
   const { getTotalItems, toggleCart } = useCart()
-  const { theme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -131,11 +131,11 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-3">
-            <button type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            <button type="button" onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
               className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/5 bg-zinc-900 text-zinc-400 hover:bg-zinc-800"
               aria-label="Cambiar tema">
               {mounted ? (
-                theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4 text-zinc-600" />
+                resolvedTheme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4 text-zinc-600" />
               ) : (
                 <div className="h-4 w-4" />
               )}

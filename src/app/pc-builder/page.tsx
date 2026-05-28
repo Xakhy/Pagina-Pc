@@ -1,5 +1,4 @@
 'use client'
-
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -14,13 +13,11 @@ import {
   resolveProductImageUrl,
   categoryFallbackImage,
 } from '@/lib/product-images'
-
 const USAGE_OPTIONS = ['Gaming', 'Diseño', 'Estudio']
 const LEVEL_OPTIONS = ['Principiante', 'Intermedio', 'Avanzado']
 const COOLING_OPTIONS = ['Aire', 'Líquida', 'La IA elige']
 const CASE_OPTIONS = ['La IA elige', 'NZXT H5 Flow', 'Lian Li Lancool', 'Fractal North']
 const BUDGET_PRESETS = [1000, 2000, 4000, 8000, 12000, 16000, 20000, 24000]
-
 const PERIPHERAL_OPTIONS = [
   { name: 'Mouse', icon: MousePointer2 },
   { name: 'Teclados', icon: Keyboard },
@@ -29,10 +26,8 @@ const PERIPHERAL_OPTIONS = [
   { name: 'Auriculares', icon: Monitor },
   { name: 'Monitor', icon: Monitor },
 ]
-
 // Fixed locale to avoid SSR/client hydration mismatch
 const formatNum = (n: number) => n.toLocaleString('es-PE')
-
 export default function PCBuilderPage() {
   const router = useRouter()
   const { addItem } = useCart()
@@ -42,22 +37,18 @@ export default function PCBuilderPage() {
   const [cooling, setCooling] = useState('Aire')
   const [pcase, setPcase] = useState('La IA elige')
   const [peripherals, setPeripherals] = useState<string[]>([])
-
   // Advanced hardware preferences (07 to 11)
   const [cpuBrand, setCpuBrand] = useState('La IA elige')
   const [ramGen, setRamGen] = useState('La IA elige')
   const [graphicsType, setGraphicsType] = useState('Tarjeta Gráfica')
   const [gpuBrand, setGpuBrand] = useState('La IA elige')
   const [storageType, setStorageType] = useState('La IA elige')
-
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [showBuild, setShowBuild] = useState(false)
-
   const togglePeripheral = (val: string) => {
     setPeripherals(prev => prev.includes(val) ? prev.filter(p => p !== val) : [...prev, val])
   }
-
   const handleGenerate = async () => {
     setLoading(true)
     setResult(null)
@@ -109,13 +100,11 @@ export default function PCBuilderPage() {
       setLoading(false)
     }
   }
-
   return (
     <div className="min-h-screen pt-24 pb-20 px-4 bg-[#050506] relative overflow-hidden">
       {/* Background Tech Texture */}
       <div className="absolute inset-0 tech-grid opacity-20 pointer-events-none" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" />
-
       <div className="max-w-6xl mx-auto relative z-10">
         <div className="text-center mb-12">
           <Badge className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-4 py-1.5 rounded-full mb-6 font-bold tracking-widest text-[10px]">
@@ -128,17 +117,14 @@ export default function PCBuilderPage() {
             Nuestra Inteligencia Artificial analiza tus necesidades y el stock en tiempo real para recomendarte la configuración perfecta al mejor precio.
           </p>
         </div>
-
         <div className="grid lg:grid-cols-12 gap-8 items-start">
           {/* Main Configurator */}
           <div className="lg:col-span-8 space-y-6">
             <div className="glass-card border border-white/5 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden bg-zinc-900/40 backdrop-blur-xl">
-
               <div className="space-y-12">
                 {/* Section 1: Budget */}
                 <div className="space-y-4">
                   <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest block">Presupuesto máximo (S/)</label>
-
                   <div className="relative pt-2 pb-6">
                     <Slider
                       min={1500}
@@ -154,7 +140,6 @@ export default function PCBuilderPage() {
                       {budget > 40000 && <span className="text-xs font-sans text-emerald-500 ml-3 uppercase tracking-widest font-bold">Presupuesto Personalizado</span>}
                     </div>
                   </div>
-
                   {/* Quick Presets (Small & Clean) */}
                   <div className="flex flex-wrap gap-2 pt-2">
                     {BUDGET_PRESETS.map(preset => (
@@ -169,7 +154,6 @@ export default function PCBuilderPage() {
                         {preset}
                       </button>
                     ))}
-
                     {/* Minimal Manual Input */}
                     <div className="flex items-center gap-2 ml-auto relative">
                       <span className="text-[10px] font-bold text-zinc-600 uppercase">Manual:</span>
@@ -193,7 +177,6 @@ export default function PCBuilderPage() {
                     </div>
                   </div>
                 </div>
-
                 {/* Section 2: Usage & Level */}
                 <div className="grid md:grid-cols-2 gap-12 pt-10 border-t border-white/10">
                   <div className="space-y-4">
@@ -231,7 +214,6 @@ export default function PCBuilderPage() {
                     </div>
                   </div>
                 </div>
-
                 {/* Section 3: Tech Specs */}
                 <div className="grid md:grid-cols-2 gap-12 pt-10 border-t border-white/10">
                   <div className="space-y-4">
@@ -269,7 +251,6 @@ export default function PCBuilderPage() {
                     </div>
                   </div>
                 </div>
-
                 {/* Peripherals */}
                 <div className="space-y-4 pt-10 border-t border-white/10">
                   <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">06. Periféricos Adicionales</label>
@@ -289,7 +270,6 @@ export default function PCBuilderPage() {
                     ))}
                   </div>
                 </div>
-
                 {/* 07 & 08: CPU Brand & RAM Gen */}
                 <div className="grid md:grid-cols-2 gap-12 pt-10 border-t border-white/10">
                   <div className="space-y-4">
@@ -327,23 +307,22 @@ export default function PCBuilderPage() {
                     </div>
                   </div>
                 </div>
-
                 {/* 09 & 10: Graphics Specs */}
                 <div className="grid md:grid-cols-2 gap-12 pt-10 border-t border-white/10">
                   <div className="space-y-4">
                     <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">09. Tipo de Gráficos</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {['Tarjeta Gráfica', 'Solo APU (Gráficos Integrados)'].map(opt => (
+                    <div className="grid grid-cols-3 gap-2">
+                      {['Tarjeta Gráfica', 'Solo APU (Gráficos Integrados)', 'La IA elige'].map(opt => (
                         <button
                           key={opt}
                           onClick={() => {
                             setGraphicsType(opt)
-                            if (opt === 'Solo APU (Gráficos Integrados)') {
+                            if (opt === 'Solo APU (Gráficos Integrados)' || opt === 'La IA elige') {
                               setGpuBrand('La IA elige')
                             }
                           }}
                           className={cn(
-                            "py-3 px-2 rounded-xl text-xs font-bold transition-all border leading-tight",
+                            "h-14 px-2 rounded-xl text-xs font-bold transition-all border leading-tight flex items-center justify-center text-center",
                             graphicsType === opt ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-white"
                           )}
                         >
@@ -352,35 +331,28 @@ export default function PCBuilderPage() {
                       ))}
                     </div>
                   </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">10. Marca de Tarjeta de Video</label>
-                      {graphicsType === 'Solo APU (Gráficos Integrados)' && (
-                        <Badge className="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded">Deshabilitado por APU</Badge>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {['NVIDIA GeForce RTX', 'AMD Radeon RX', 'La IA elige'].map(opt => {
-                        const disabled = graphicsType === 'Solo APU (Gráficos Integrados)'
-                        return (
+                  {graphicsType !== 'Solo APU (Gráficos Integrados)' && graphicsType !== 'La IA elige' && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-black text-zinc-500 uppercase tracking-widest">10. Marca de Tarjeta de Video</label>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {['NVIDIA GeForce RTX', 'AMD Radeon RX', 'La IA elige'].map(opt => (
                           <button
                             key={opt}
-                            disabled={disabled}
-                            onClick={() => !disabled && setGpuBrand(opt)}
+                            onClick={() => setGpuBrand(opt)}
                             className={cn(
-                              "py-3 rounded-xl text-[10px] font-bold transition-all border leading-tight",
-                              disabled ? "bg-zinc-950/20 border-zinc-900/40 text-zinc-700 cursor-not-allowed opacity-40" :
-                                gpuBrand === opt ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-white"
+                              "h-14 px-1 rounded-xl text-[10px] font-bold transition-all border leading-tight flex items-center justify-center text-center",
+                              gpuBrand === opt ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-white"
                             )}
                           >
                             {opt === 'NVIDIA GeForce RTX' ? 'NVIDIA' : opt === 'AMD Radeon RX' ? 'AMD RX' : 'IA Elige'}
                           </button>
-                        )
-                      })}
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
-
                 {/* 11: Storage Prefs */}
                 <div className="grid md:grid-cols-2 gap-12 pt-10 border-t border-white/10">
                   <div className="space-y-4">
@@ -404,14 +376,12 @@ export default function PCBuilderPage() {
               </div>
             </div>
           </div>
-
           {/* Side Summary Panel */}
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-[#0c0c0e]/80 backdrop-blur-2xl border border-indigo-500/30 rounded-[2.5rem] p-8 shadow-2xl sticky top-24">
               <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-8 flex items-center gap-2">
                 <Info className="w-4 h-4 text-indigo-500" /> Panel de Control IA
               </h4>
-
               <div className="space-y-6 mb-10">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-zinc-500">Presupuesto</span>
@@ -426,7 +396,6 @@ export default function PCBuilderPage() {
                   <span className={`font-bold font-tech ${result && result.total > budget ? 'text-red-400' : 'text-emerald-400'}`} suppressHydrationWarning>S/ {new Intl.NumberFormat('es-PE').format(result?.total || 0)}</span>
                 </div>
               </div>
-
               <div className="space-y-4">
                 <Button
                   onClick={handleGenerate}
@@ -446,7 +415,6 @@ export default function PCBuilderPage() {
                   </Button>
                 )}
               </div>
-
               <div className="mt-8 p-5 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
                 <p className="text-[10px] text-zinc-500 leading-relaxed italic">
                   * La IA optimiza la build seleccionando componentes compatibles con stock garantizado en Perú.
@@ -455,7 +423,6 @@ export default function PCBuilderPage() {
             </div>
           </div>
         </div>
-
         {/* Build Detail Grid */}
         {showBuild && result && Array.isArray(result.build) && result.build.length > 0 && (
           <div className="mt-16 space-y-12 animate-in fade-in slide-in-from-bottom-10 duration-700">
@@ -468,7 +435,6 @@ export default function PCBuilderPage() {
                 <p className="text-zinc-500 text-sm font-medium">{result.summary}</p>
               </div>
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {(result.build as any[]).map(({ product, reason }: any) => (
                 <div key={product.id} className="group bg-zinc-900/50 backdrop-blur-md border border-white/5 rounded-[3rem] overflow-hidden hover:border-indigo-500/50 transition-all shadow-2xl">
@@ -522,7 +488,6 @@ export default function PCBuilderPage() {
                 </div>
               ))}
             </div>
-
             <div className="flex flex-col items-center gap-8 pt-12">
               <Button
                 onClick={() => {

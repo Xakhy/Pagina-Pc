@@ -15,6 +15,42 @@ function detectPlatform(cpuName: string): 'amd' | 'intel' {
     return 'intel'
 }
 
+function detectAMDSocket(cpuName: string): 'am4' | 'am5' | null {
+    const n = cpuName.toLowerCase()
+    if (!n.includes('ryzen') && !n.includes('athlon') && !n.includes('amd')) return null
+    if (n.includes('7500f') || n.includes('7600') || n.includes('7800x3d') || n.includes('7900x') || n.includes('7950x3d') || n.includes('8500g') || n.includes('8600g') || n.includes('8700g')) {
+        return 'am5'
+    }
+    if (n.includes('5600g') || n.includes('5700g') || n.includes('4500') || n.includes('4600g')) {
+        return 'am4'
+    }
+    return null
+}
+
+function getCpuPlatformMinCosts(cpuName: string): { minMB: number; minRAM: number } {
+    const n = cpuName.toLowerCase()
+    
+    // AMD Socket Check
+    if (n.includes('ryzen') || n.includes('athlon')) {
+        if (n.includes('7500f') || n.includes('7600') || n.includes('7800x3d') || n.includes('7900x') || n.includes('7950x3d') || n.includes('8500g') || n.includes('8600g') || n.includes('8700g')) {
+            return { minMB: 520, minRAM: 290 } // AM5 + DDR5 minimums
+        }
+        return { minMB: 290, minRAM: 115 } // AM4 + DDR4 minimums
+    }
+    
+    // Intel Check
+    if (n.includes('i3-12100f') || n.includes('i5-12600k')) {
+        return { minMB: 390, minRAM: 115 } // LGA1700 DDR4 minimums
+    }
+    
+    // Intel 13th/14th gen
+    if (n.includes('i3-13100f') || n.includes('i5-13600k') || n.includes('i7-13700f') || n.includes('i7-13700k') || n.includes('i5-14400f') || n.includes('i9-14900k')) {
+        return { minMB: 390, minRAM: 115 } // LGA1700 DDR4 minimums
+    }
+    
+    return { minMB: 290, minRAM: 115 } // default fallback
+}
+
 /** Returns 0 when array is empty (safe for Math.min) */
 function minPrice(products: any[]): number {
     if (!products.length) return 0
@@ -103,6 +139,19 @@ function isMB(p: any, cpuProd: any | null, ramProd: any | null, cpuBrand?: strin
     if (platform === 'amd' && !isAMDMb) return false
     if (platform === 'intel' && !isIntelMb) return false
 
+    // AM4 / AM5 Socket Check
+    if (cpuProd) {
+        const socket = detectAMDSocket(cpuProd.name)
+        if (socket === 'am5') {
+            const isAM5Mb = nl.includes('b650') || nl.includes('a620') || nl.includes('x670')
+            if (!isAM5Mb) return false
+        }
+        if (socket === 'am4') {
+            const isAM4Mb = nl.includes('a520') || nl.includes('b450') || nl.includes('b550') || nl.includes('am4')
+            if (!isAM4Mb) return false
+        }
+    }
+
     // DDR compatibility — only reject if name EXPLICITLY states opposite generation
     const isDDR5 = ramProd
         ? ramProd.name.toLowerCase().includes('ddr5')
@@ -169,7 +218,22 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Presupuesto inválido. Mínimo S/ 1,500.' }, { status: 400 })
         }
 
-        const isAPU = graphicsType === 'Solo APU (Gráficos Integrados)'
+        // Determine isAPU based on graphicsType
+        let isAPU: boolean
+        if (graphicsType === 'Solo APU (Gráficos Integrados)') {
+            isAPU = true
+        } else if (graphicsType === 'La IA elige') {
+            // Auto-decide: APU if budget < 2000 or usage is 'Estudio'
+            // Include GPU if budget > 2500 and usage is 'Gaming' or 'Diseño'
+            // For 2000-2500 with Gaming, include GPU
+            if (budgetNum < 2000 || usage === 'Estudio') {
+                isAPU = true
+            } else {
+                isAPU = false
+            }
+        } else {
+            isAPU = false
+        }
         const preferHighEnd = budgetNum >= 2500
 
         // ── Load stock ──────────────────────────────────────────────────
@@ -226,11 +290,45 @@ export async function POST(req: NextRequest) {
 
 REGLA MÁXIMA: La suma total de precios NO puede superar S/ ${budgetNum}. Verifica la suma antes de responder.
 
-COMPATIBILIDAD OBLIGATORIA:
-- CPU Intel → Placa Intel (B760/Z790/H610/B660/Z690)
-- CPU AMD → Placa AMD (B650/X670/B550/A520/A620)
-- RAM DDR5 → Placa compatible DDR5; RAM DDR4 → Placa compatible DDR4
-- ${isAPU ? 'NO incluir GPU — build APU con gráficos integrados' : 'Incluir GPU dedicada'}
+COMPONENTES OBLIGATORIOS: La build DEBE incluir SIEMPRE procesador, placa madre, RAM, almacenamiento, fuente de poder, gabinete y cooler. Nunca omitir ninguno.
+
+DISTRIBUCIÓN DEL PRESUPUESTO: Ningún componente puede consumir más del 40% del presupuesto total salvo que sea la única opción viable.
+- Gaming: 25-30% CPU, 35-40% GPU, 10-15% RAM, 8-10% placa, 5-8% almacenamiento, 5-7% fuente, 5-7% gabinete, 3-5% cooler
+- Diseño: 30-35% CPU, 25-30% GPU, 15-20% RAM, 10-12% placa, 8-10% almacenamiento, 5-7% fuente, 5% gabinete, 3-5% cooler
+- Estudio: 35-40% CPU, sin GPU dedicada, 20-25% RAM, 12-15% placa, 10-12% almacenamiento, 5-7% fuente, 5% gabinete, 3-5% cooler
+
+COMPATIBILIDAD DE PLATAFORMA (reglas estrictas):
+- Ryzen 7000 (7500F, 7600, 7800X3D, 7900X, 7950X3D) → socket AM5 → placas válidas: ASUS ROG Strix B650-A, MSI MAG B650 Tomahawk WiFi, ASUS TUF Gaming A620M-Plus WiFi, Gigabyte B650M K AM5. RAM DEBE ser DDR5
+- Ryzen 8000G (8500G, 8600G, 8700G) → socket AM5 → mismas placas AM5. RAM DEBE ser DDR5. ${isAPU ? 'NO incluir GPU dedicada' : 'Incluir GPU dedicada'}
+- Ryzen 5000/4000 (5600G, 5700G, 4500, 4600G) → socket AM4 → placas válidas: MSI A520M-A PRO, GIGABYTE B450M DS3H V2, MSI B550M PRO-VDH WiFi. RAM DEBE ser DDR4
+- Intel 12th gen (i3-12100F, i5-12600K) → socket LGA1700 → placas DDR4 válidas: ASUS Prime H610M-E DDR4, Gigabyte B760M DS3H AX DDR4. RAM DEBE ser DDR4
+- Intel 13th/14th gen (i3-13100F, i5-13600K, i7-13700F, i7-13700K, i5-14400F, i9-14900K) → socket LGA1700 → placas válidas: ASUS TUF Gaming B760-Plus WiFi (DDR5), MSI MAG B760 Tomahawk WiFi DDR5, Gigabyte B760M DS3H AX DDR4, ASRock B760 Pro RS DDR5, ASUS ROG Maximus Z790 Hero (DDR5). Verificar si la placa elegida es DDR4 o DDR5 y elegir RAM del mismo tipo
+NUNCA: Ryzen 7000/8000 con placa AM4. NUNCA: Ryzen 5000/4000 con placa AM5. NUNCA: Intel con placa AMD. NUNCA: AMD con placa Intel.
+
+COMPATIBILIDAD DE RAM SEGÚN PLACA:
+- Placas DDR4 (ASUS Prime H610M-E DDR4, Gigabyte B760M DS3H AX DDR4, GIGABYTE B450M DS3H V2, MSI A520M-A PRO, MSI B550M PRO-VDH WiFi) → RAM válida: Corsair Vengeance LPX 16GB DDR4-3200 (S/210), Kingston FURY Beast 8GB DDR4-3200 (S/115)
+- Placas DDR5 (MSI MAG B760 Tomahawk WiFi DDR5, ASRock B760 Pro RS DDR5, ASUS TUF Gaming B760-Plus WiFi, ASUS ROG Strix B650-A, MSI MAG B650 Tomahawk WiFi, Gigabyte B650M K AM5, ASUS TUF Gaming A620M-Plus WiFi, ASUS ROG Maximus Z790 Hero) → RAM válida: TeamGroup T-Force Delta RGB 32GB DDR5-6400 (S/640), G.Skill Ripjaws S5 32GB DDR5-5200 (S/490), Corsair Vengeance RGB 32GB DDR5-6000 (S/580), G.Skill Trident Z5 Neo 32GB DDR5-6000 (S/620), Kingston FURY Beast DDR5 16GB 5200MHz (S/290)
+
+COMPATIBILIDAD DE COOLER (todos compatibles con AM4, AM5 y LGA1700):
+- Si cooling es Aire → elegir entre: DeepCool AG400 ARGB (S/115), Cooler Master Hyper 212 Halo Black (S/165), Noctua NH-D15 (S/380)
+- Si cooling es Líquida → elegir entre: Antec Symphony 240 ARGB (S/270), DeepCool LE520 240mm ARGB (S/310), Arctic Liquid Freezer III 360 (S/480), Corsair iCUE H150i RGB Elite 360mm (S/820), NZXT Kraken Elite 360 RGB (S/1180)
+
+FUENTE DE PODER SEGÚN CONSUMO:
+- Build APU sin GPU (~115W total) → Antryx Kirin 500W (S/175) o DeepCool PK550D 550W (S/220)
+- Build con GPU entry (GTX 1650 S/640, RX 6600 S/980, Arc A380 S/490, ~250W) → EVGA 600W (S/210) o MSI MAG A650BN 650W (S/260)
+- Build con GPU mid (RTX 4060 S/1420, RX 7700 XT S/2190, ~350W) → Cooler Master MWE Gold 750W (S/320) o Gigabyte UD750GM 750W (S/395)
+- Build con GPU high (RTX 4070 S/2890, RTX 4070 Ti S/3450, RTX 4070 Ti Super S/3650, RX 7900 XTX S/4650, ~500W) → Corsair RM850e 850W (S/420) o ASUS ROG Thor 850W (S/940) o Corsair RM1000e 1000W (S/720)
+- Build con GPU ultra (RTX 4080 Super S/4890, RTX 4070 Ti Super ASUS S/4150, ~600W) → Corsair RM1000e 1000W (S/720) o ASUS ROG Thor 850W (S/940)
+
+EVITAR CUELLOS DE BOTELLA:
+- GTX 1650 (S/640), Arc A380 (S/490), RX 6600 (S/980) → emparejar con i3-12100F (S/395), i3-13100F (S/440), Ryzen 5 4500 (S/360), Ryzen 5 4600G (S/390)
+- RTX 4060 (S/1420), RX 7700 XT (S/2190) → emparejar con i5-13600K (S/1180), i5-14400F (S/940), Ryzen 5 7600 (S/920), Ryzen 5 7500F (S/760)
+- RTX 4070 (S/2890), RTX 4070 Ti (S/3450) → emparejar con i7-13700F (S/1520), i7-13700K (S/1680), Ryzen 7 7800X3D (S/1650), Ryzen 7 8700G (S/1350)
+- RTX 4070 Ti Super (S/3650-4150), RTX 4080 Super (S/4890), RX 7900 XTX (S/4650) → emparejar con i9-14900K (S/2250), Ryzen 9 7900X (S/1980), Ryzen 9 7950X3D (S/2850)
+NUNCA: RTX 4070 o superior con i3 o Ryzen 5 4500/4600G/4500. NUNCA: GTX 1650 o Arc A380 con i9 o Ryzen 9.
+
+PERIFÉRICOS: Solo incluir periféricos si el usuario los marcó. Si la lista está vacía, no incluir ninguno.
+Precios exactos del catálogo proporcionado abajo.
 
 PREFERENCIAS DEL USUARIO:
 - CPU: ${cpuBrand || 'libre'}
@@ -261,7 +359,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown ni texto extra:
   "tips": ["tip 1", "tip 2"]
 }`
 
-        let aiSuggestions: Suggestion[] = []
+        let aiSuggestions: any[] = []
         let aiSummary = ''
         let aiTips: string[] = []
 
@@ -321,12 +419,21 @@ Responde ÚNICAMENTE con JSON válido, sin markdown ni texto extra:
 
         // ── 1. CPU ──────────────────────────────────────────────────────
         {
+            const reserveWithoutMbRam = minGPU + minST + minPSU + minCase + minCool + totalPerMin
+            
+            // Filter cpuOpts to make sure we leave enough room for their specific socket's motherboard and RAM
+            const validCpuOpts = cpuOpts.filter(cpu => {
+                const costs = getCpuPlatformMinCosts(cpu.name)
+                const totalReserve = reserveWithoutMbRam + costs.minMB + costs.minRAM
+                return Number(cpu.price) <= (remaining - totalReserve)
+            })
+
             const reserve = minGPU + minRAM + minMB + minST + minPSU + minCase + minCool + totalPerMin
             const max = Math.max(0, remaining - reserve)
             const filter = (p: any) => isCPU(p, cpuBrand)
             const product = getAI('cpu', max, filter)
-                ?? pickBest(cpuOpts, max, preferHighEnd)
-                ?? pickBest(cpuOpts, remaining - (reserve - minMB - minRAM), false)
+                ?? pickBest(validCpuOpts, max, preferHighEnd)
+                ?? pickBest(validCpuOpts, remaining - (reserve - minMB - minRAM), false)
             if (product) add('cpu', product)
         }
 
@@ -347,10 +454,33 @@ Responde ÚNICAMENTE con JSON válido, sin markdown ni texto extra:
         {
             const reserve = minMB + minST + minPSU + minCase + minCool + totalPerMin
             const max = Math.max(0, remaining - reserve)
-            const filter = (p: any) => isRAM(p, ramGen)
+            
+            // Enforce appropriate RAM generation for AM5, AM4 and Intel CPUs based on budget constraints
+            let actualRamGen = ramGen
+            if (cpuProduct) {
+                const socket = detectAMDSocket(cpuProduct.name)
+                if (socket === 'am5') {
+                    actualRamGen = 'DDR5'
+                } else if (socket === 'am4') {
+                    actualRamGen = 'DDR4'
+                } else {
+                    // Intel CPU
+                    if (!ramGen || ramGen === 'La IA elige') {
+                        // Check if we can afford DDR5 (needs at least S/ 940 for RAM + Motherboard)
+                        const reserveWithoutMb = minST + minPSU + minCase + minCool + totalPerMin
+                        const neededForDDR5 = 290 + 650 // min DDR5 RAM (290) + min DDR5 Intel MB (650)
+                        if (remaining - reserveWithoutMb < neededForDDR5) {
+                            actualRamGen = 'DDR4'
+                        }
+                    }
+                }
+            }
+
+            const filteredRamOpts = ramOpts.filter(p => isRAM(p, actualRamGen))
+            const filter = (p: any) => isRAM(p, actualRamGen)
             const product = getAI('ram', max, filter)
-                ?? pickBest(ramOpts, max, preferHighEnd)
-                ?? pickBest(ramOpts, remaining - (reserve - minMB), false)
+                ?? pickBest(filteredRamOpts, max, preferHighEnd)
+                ?? pickBest(filteredRamOpts, remaining - (reserve - minMB), false)
             if (product) add('ram', product)
         }
 
