@@ -1,8 +1,8 @@
 'use client'
 
-import { ShoppingCart, Star, Zap, Eye } from 'lucide-react'
+import { ShoppingCart, Eye } from 'lucide-react'
 import { toast } from 'sonner'
-import { cn, formatPEN, formatUSD, EXCHANGE_RATE } from '@/lib/utils'
+import { cn, formatPEN, EXCHANGE_RATE } from '@/lib/utils'
 import {
   resolveProductImageUrl,
   categoryFallbackImage,
@@ -87,8 +87,8 @@ export function ProductCard({ product, className }: ProductCardProps) {
               product.stock > 5
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                 : product.stock > 0
-                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                : 'bg-red-500/10 text-red-400 border-red-500/20'
+                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                  : 'bg-red-500/10 text-red-400 border-red-500/20'
             )}
           >
             Stock: {product.stock}

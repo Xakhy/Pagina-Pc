@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ProductCard } from '@/components/ProductCard'
 import { CATEGORIES } from '@/lib/categories'
 import { Loader2, Search } from 'lucide-react'
@@ -12,37 +12,28 @@ export default function ProductosPage() {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('Todas')
-
   const supabase = createClient()
 
-  useEffect(() => {
-    fetchProducts()
-  }, [activeCategory])
-
-  async function fetchProducts() {
+  const fetchProducts = useCallback(async () => {
     setLoading(true)
     try {
       let queryBuilder = supabase.from('products').select('*')
-
       if (activeCategory !== 'Todas') {
         queryBuilder = queryBuilder.eq('category', activeCategory)
       }
-
       const { data, error } = await queryBuilder
-
-      if (error) {
-        throw error
-      }
-
-      if (data) {
-        setProducts(data)
-      }
+      if (error) throw error
+      if (data) setProducts(data)
     } catch (error) {
       console.error('Error al cargar productos:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeCategory, supabase])
+
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
 
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(query.toLowerCase())
@@ -51,7 +42,6 @@ export default function ProductosPage() {
   return (
     <div className="min-h-screen pt-24 pb-20 px-4 bg-zinc-950">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <h1 className="text-5xl font-black text-white tracking-tighter uppercase font-tech">
@@ -59,7 +49,6 @@ export default function ProductosPage() {
             </h1>
             <p className="text-zinc-500 mt-2 font-medium tracking-tight">Componentes de gama alta con stock garantizado</p>
           </div>
-
           <div className="relative w-full md:w-96">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
             <Input
@@ -71,15 +60,14 @@ export default function ProductosPage() {
           </div>
         </div>
 
-        {/* Categories Tabs */}
         <div className="flex gap-3 overflow-x-auto pb-8 scrollbar-hide">
           {['Todas', ...CATEGORIES.map(c => c.name)].map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
               className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${activeCategory === cat
-                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                  : 'bg-zinc-900/50 border-white/5 text-zinc-500 hover:text-white hover:bg-zinc-900'
+                ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                : 'bg-zinc-900/50 border-white/5 text-zinc-500 hover:text-white hover:bg-zinc-900'
                 }`}
             >
               {cat}
@@ -87,7 +75,6 @@ export default function ProductosPage() {
           ))}
         </div>
 
-        {/* Main Content Area */}
         <div className="min-h-[400px]">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-40 gap-4">

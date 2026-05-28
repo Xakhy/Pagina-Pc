@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Sparkles, Cpu, ShoppingCart, Loader2, Monitor, MousePointer2, Keyboard, Mic2, Square } from 'lucide-react'
+import { Sparkles, ShoppingCart, Loader2, Monitor, MousePointer2, Keyboard, Mic2, Square } from 'lucide-react'
 import { formatPEN, cn } from '@/lib/utils'
 import {
   resolveProductImageUrl,
@@ -58,7 +58,7 @@ export function PCBuilderHomeBlock() {
       setResult(data)
       setShowBuild(true)
       toast.success('¡Build generada con éxito!')
-    } catch (err) {
+    } catch {
       toast.error('Error al conectar con la IA')
     } finally {
       setLoading(false)

@@ -2,7 +2,7 @@
 
 import { jsPDF } from 'jspdf'
 import { Button } from '@/components/ui/button'
-import { FileText, Download } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import { formatPEN } from '@/lib/utils'
 
 interface VoucherProps {

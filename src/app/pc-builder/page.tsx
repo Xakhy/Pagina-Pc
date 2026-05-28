@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Sparkles, ShoppingCart, Loader2, Monitor, MousePointer2, Keyboard, Mic2, Square, Info, ChevronRight, Zap, Plus, Minus } from 'lucide-react'
+import { Sparkles, ShoppingCart, Loader2, Monitor, MousePointer2, Keyboard, Mic2, Square, Info, Zap } from 'lucide-react'
 import { useCart } from '@/lib/store'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -53,10 +53,6 @@ export default function PCBuilderPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [showBuild, setShowBuild] = useState(false)
-
-  const adjustBudget = (amount: number) => {
-    setBudget(prev => Math.max(1500, (prev || 0) + amount))
-  }
 
   const togglePeripheral = (val: string) => {
     setPeripherals(prev => prev.includes(val) ? prev.filter(p => p !== val) : [...prev, val])
@@ -105,7 +101,7 @@ export default function PCBuilderPage() {
       setResult(data)
       setShowBuild(true)
       toast.success('¡Optimización de IA completada!')
-    } catch (err) {
+    } catch {
       toast.error('Error al conectar con el servidor de IA')
       setResult(null)
       setShowBuild(false)

@@ -7,7 +7,8 @@
   :root {
     --background: 0 0% 98%;
     --foreground: 240 10% 3.9%;
-    --primary: 244 43% 51%; /* #534AB7 - Indigo Tech */
+    --primary: 244 43% 51%;
+    /* #534AB7 - Indigo Tech */
     --primary-foreground: 0 0% 98%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
@@ -166,7 +167,7 @@
 }
 
 /* Dividers */
-.light .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+.light .divide-white\/5> :not([hidden])~ :not([hidden]) {
   border-color: #e4e4e7 !important;
 }
 
@@ -533,7 +534,12 @@
     @apply bg-background text-foreground;
     font-family: 'DM Sans', sans-serif;
   }
-  h1, h2, h3, h4, .font-tech {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-tech {
     font-family: 'Rajdhani', sans-serif;
     @apply font-bold tracking-tight uppercase;
   }
@@ -543,55 +549,73 @@
   .tb-glass {
     @apply bg-zinc-900/50 backdrop-blur-md border border-white/5;
   }
+
   .price-text {
     @apply text-emerald-400 font-bold;
     font-family: 'Rajdhani', sans-serif;
   }
+
   .btn-indigo {
     @apply bg-[#534AB7] hover:bg-[#4339a7] text-white font-bold transition-all active:scale-95;
   }
 }
 
 /* Scrollbar minimalista */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #534AB7; border-radius: 10px; }
+::-webkit-scrollbar {
+  width: 6px;
+}
 
-.light ::-webkit-scrollbar-thumb { background: #a5b4fc; }
-.light ::-webkit-scrollbar-track { background: #f4f4f5; }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #534AB7;
+  border-radius: 10px;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: #a5b4fc;
+}
+
+.light ::-webkit-scrollbar-track {
+  background: #f4f4f5;
+}
 
 /* Tech grid patterns */
 .tech-grid {
-  background-image: 
-    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
   background-size: 50px 50px;
 }
 
 .light .tech-grid {
-  background-image: 
-    linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px) !important;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px) !important;
 }
 
 .hero-grid {
-  background-image: 
-    radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
+  background-image:
+    radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
   background-size: 40px 40px;
 }
 
 .light .hero-grid {
-  background-image: 
-    radial-gradient(circle at 2px 2px, rgba(0,0,0,0.03) 1px, transparent 0) !important;
+  background-image:
+    radial-gradient(circle at 2px 2px, rgba(0, 0, 0, 0.03) 1px, transparent 0) !important;
 }
 
 /* Card hover animations */
 .card-hover {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+
 .card-hover:hover {
   transform: translateY(-4px);
 }
+
 .light .card-hover:hover {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08) !important;
 }

@@ -2,7 +2,6 @@
 
 import { useCart } from '@/lib/store'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, Package } from 'lucide-react'
 import Link from 'next/link'

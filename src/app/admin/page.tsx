@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect, Fragment, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -84,40 +84,24 @@ export default function AdminPage() {
 
   const supabase = createClient()
 
-  useEffect(() => {
-    fetchProducts()
-    fetchOrders()
-  }, [])
-
-  async function fetchProducts() {
+  const fetchProducts = useCallback(async () => {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('category', { ascending: true })
-
-    if (error) {
-      toast.error('Error al cargar productos')
-    } else {
-      setProducts(data || [])
-    }
+    const { data, error } = await supabase.from('products').select('*').order('category', { ascending: true })
+    if (error) { toast.error('Error al cargar productos') } else { setProducts(data || []) }
     setLoading(false)
-  }
+  }, [supabase])
 
-  async function fetchOrders() {
+  const fetchOrders = useCallback(async () => {
     setOrdersLoading(true)
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      toast.error('Error al cargar órdenes')
-    } else {
-      setOrders((data as OrderRow[]) || [])
-    }
+    const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false })
+    if (error) { toast.error('Error al cargar órdenes') } else { setOrders((data as OrderRow[]) || []) }
     setOrdersLoading(false)
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchOrders()
+    fetchProducts()
+  }, [fetchOrders, fetchProducts])
 
   const handleSync = async () => {
     setSyncing(true)
@@ -224,8 +208,7 @@ export default function AdminPage() {
   // ── Order Management ──
   const handleOrderAction = async (
     orderId: string,
-    newStatus: string,
-    orderItems?: any[]
+    newStatus: string
   ) => {
     setUpdatingOrder(orderId)
 
@@ -721,9 +704,7 @@ export default function AdminPage() {
                                       <>
                                         <Button
                                           size="sm"
-                                          onClick={() =>
-                                            handleOrderAction(order.id, 'confirmed', items)
-                                          }
+                                          onClick={() => handleOrderAction(order.id, 'confirmed')}
                                           className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-9 px-3 rounded-lg text-[10px] uppercase tracking-wider"
                                         >
                                           <Check className="w-3.5 h-3.5 mr-1" />
@@ -772,73 +753,75 @@ export default function AdminPage() {
                           </tr>
 
                           {/* Expanded details */}
-                          {isExpanded && (
-                            <tr className="bg-white/[0.01]">
-                              <td colSpan={7} className="px-6 pb-6">
-                                <div className="bg-zinc-900/50 rounded-2xl p-5 border border-white/5 space-y-3 mt-2">
-                                  <div className="grid grid-cols-2 gap-4 mb-4">
-                                    <div>
-                                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">
-                                        Dirección
-                                      </p>
-                                      <p className="text-sm text-zinc-300">{order.address}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">
-                                        ID completo
-                                      </p>
-                                      <p className="text-xs text-zinc-400 font-mono break-all">
-                                        {order.id}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <div className="border-t border-white/5 pt-3">
-                                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">
-                                      Productos
-                                    </p>
-                                    {items.map((it: any, idx: number) => (
-                                      <div
-                                        key={idx}
-                                        className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
-                                      >
-                                        <div className="flex items-center gap-3">
-                                          <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-white/5 overflow-hidden flex-shrink-0">
-                                            <img
-                                              src={resolveProductImageUrl(
-                                                it.name,
-                                                it.category,
-                                                it.image_url
-                                              )}
-                                              alt=""
-                                              className="w-full h-full object-contain"
-                                              onError={(e) => {
-                                                const el = e.currentTarget
-                                                el.onerror = null
-                                                el.src = categoryFallbackImage(it.category)
-                                              }}
-                                            />
-                                          </div>
-                                          <div>
-                                            <p className="text-sm text-zinc-200 font-medium">
-                                              {it.name}
-                                            </p>
-                                            <p className="text-[10px] text-zinc-500">
-                                              ×{it.quantity || 1}
-                                            </p>
-                                          </div>
-                                        </div>
-                                        <span className="text-sm font-bold text-emerald-400 font-tech">
-                                          {formatPEN(
-                                            Number(it.price || 0) * Number(it.quantity || 1)
-                                          )}
-                                        </span>
+                          {
+                            isExpanded && (
+                              <tr className="bg-white/[0.01]">
+                                <td colSpan={7} className="px-6 pb-6">
+                                  <div className="bg-zinc-900/50 rounded-2xl p-5 border border-white/5 space-y-3 mt-2">
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                      <div>
+                                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">
+                                          Dirección
+                                        </p>
+                                        <p className="text-sm text-zinc-300">{order.address}</p>
                                       </div>
-                                    ))}
+                                      <div>
+                                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">
+                                          ID completo
+                                        </p>
+                                        <p className="text-xs text-zinc-400 font-mono break-all">
+                                          {order.id}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="border-t border-white/5 pt-3">
+                                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">
+                                        Productos
+                                      </p>
+                                      {items.map((it: any, idx: number) => (
+                                        <div
+                                          key={idx}
+                                          className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
+                                        >
+                                          <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-white/5 overflow-hidden flex-shrink-0">
+                                              <img
+                                                src={resolveProductImageUrl(
+                                                  it.name,
+                                                  it.category,
+                                                  it.image_url
+                                                )}
+                                                alt=""
+                                                className="w-full h-full object-contain"
+                                                onError={(e) => {
+                                                  const el = e.currentTarget
+                                                  el.onerror = null
+                                                  el.src = categoryFallbackImage(it.category)
+                                                }}
+                                              />
+                                            </div>
+                                            <div>
+                                              <p className="text-sm text-zinc-200 font-medium">
+                                                {it.name}
+                                              </p>
+                                              <p className="text-[10px] text-zinc-500">
+                                                ×{it.quantity || 1}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <span className="text-sm font-bold text-emerald-400 font-tech">
+                                            {formatPEN(
+                                              Number(it.price || 0) * Number(it.quantity || 1)
+                                            )}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
                                   </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
+                                </td>
+                              </tr>
+                            )
+                          }
                         </Fragment>
                       )
                     })}
@@ -847,197 +830,200 @@ export default function AdminPage() {
             )}
           </div>
         </div>
-      )}
+      )
+      }
 
       {/* ══════════════ HISTORIAL TAB ══════════════ */}
-      {activeTab === 'history' && (
-        <div className="bg-[#0a0a0c] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
-          {/* Header Bar */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-8 py-6 bg-zinc-900/10 border-b border-white/5 gap-4">
-            <div>
-              <h3 className="font-tech text-base font-black uppercase tracking-tight text-white">Historial de Órdenes</h3>
-              <p className="text-xs text-zinc-500 font-medium">Pedidos que ya fueron completados (Entregados o Rechazados)</p>
+      {
+        activeTab === 'history' && (
+          <div className="bg-[#0a0a0c] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
+            {/* Header Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-8 py-6 bg-zinc-900/10 border-b border-white/5 gap-4">
+              <div>
+                <h3 className="font-tech text-base font-black uppercase tracking-tight text-white">Historial de Órdenes</h3>
+                <p className="text-xs text-zinc-500 font-medium">Pedidos que ya fueron completados (Entregados o Rechazados)</p>
+              </div>
+              {orders.filter(o => o.status === 'delivered' || o.status === 'rejected').length > 0 && (
+                <Button
+                  variant="ghost"
+                  onClick={handleClearHistory}
+                  className="bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white font-bold h-10 px-4 rounded-xl text-[10px] uppercase tracking-wider transition-all"
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-2" />
+                  Borrar todo el historial
+                </Button>
+              )}
             </div>
-            {orders.filter(o => o.status === 'delivered' || o.status === 'rejected').length > 0 && (
-              <Button
-                variant="ghost"
-                onClick={handleClearHistory}
-                className="bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white font-bold h-10 px-4 rounded-xl text-[10px] uppercase tracking-wider transition-all"
-              >
-                <Trash2 className="w-3.5 h-3.5 mr-2" />
-                Borrar todo el historial
-              </Button>
-            )}
-          </div>
 
-          <div className="overflow-x-auto">
-            {ordersLoading ? (
-              <div className="flex flex-col items-center justify-center py-40 gap-4">
-                <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
-                <p className="text-zinc-500 font-bold tracking-widest text-xs uppercase font-tech">
-                  Cargando historial...
-                </p>
-              </div>
-            ) : orders.filter(o => o.status === 'delivered' || o.status === 'rejected').length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-40 gap-4">
-                <History className="w-12 h-12 text-zinc-700" />
-                <p className="text-zinc-500 font-bold text-sm">El historial está vacío</p>
-              </div>
-            ) : (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-white/5 text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-black">
-                    <th className="px-6 py-5">Cliente</th>
-                    <th className="px-6 py-5">Email</th>
-                    <th className="px-6 py-5">Items</th>
-                    <th className="px-6 py-5">Total</th>
-                    <th className="px-6 py-5">Estado</th>
-                    <th className="px-6 py-5">Fecha</th>
-                    <th className="px-6 py-5 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {orders
-                    .filter(o => o.status === 'delivered' || o.status === 'rejected')
-                    .map((order) => {
-                      const items = Array.isArray(order.items) ? order.items : []
-                      const isExpanded = expandedOrder === order.id
+            <div className="overflow-x-auto">
+              {ordersLoading ? (
+                <div className="flex flex-col items-center justify-center py-40 gap-4">
+                  <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
+                  <p className="text-zinc-500 font-bold tracking-widest text-xs uppercase font-tech">
+                    Cargando historial...
+                  </p>
+                </div>
+              ) : orders.filter(o => o.status === 'delivered' || o.status === 'rejected').length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-40 gap-4">
+                  <History className="w-12 h-12 text-zinc-700" />
+                  <p className="text-zinc-500 font-bold text-sm">El historial está vacío</p>
+                </div>
+              ) : (
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-white/5 text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-black">
+                      <th className="px-6 py-5">Cliente</th>
+                      <th className="px-6 py-5">Email</th>
+                      <th className="px-6 py-5">Items</th>
+                      <th className="px-6 py-5">Total</th>
+                      <th className="px-6 py-5">Estado</th>
+                      <th className="px-6 py-5">Fecha</th>
+                      <th className="px-6 py-5 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {orders
+                      .filter(o => o.status === 'delivered' || o.status === 'rejected')
+                      .map((order) => {
+                        const items = Array.isArray(order.items) ? order.items : []
+                        const isExpanded = expandedOrder === order.id
 
-                      return (
-                        <Fragment key={order.id}>
-                          <tr className="hover:bg-white/[0.02] transition-colors group">
-                            <td className="px-6 py-5 align-middle">
-                              <p className="font-bold text-zinc-100 text-sm">{order.customer_name}</p>
-                              <p className="text-[10px] text-zinc-600 font-mono mt-0.5">
-                                {order.id.slice(0, 8)}...
-                              </p>
-                            </td>
-                            <td className="px-6 py-5 align-middle">
-                              <span className="text-zinc-400 text-xs">{order.customer_email}</span>
-                            </td>
-                            <td className="px-6 py-5 align-middle">
-                              <button
-                                onClick={() =>
-                                  setExpandedOrder(isExpanded ? null : order.id)
-                                }
-                                className="flex items-center gap-1 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
-                              >
-                                {items.length} items
-                                {isExpanded ? (
-                                  <ChevronUp className="w-3 h-3" />
-                                ) : (
-                                  <ChevronDown className="w-3 h-3" />
-                                )}
-                              </button>
-                            </td>
-                            <td className="px-6 py-5 align-middle">
-                              <span className="text-emerald-400 font-black font-tech text-base">
-                                {formatPEN(Number(order.total))}
-                              </span>
-                            </td>
-                            <td className="px-6 py-5 align-middle">
-                              {getStatusBadge(order.status)}
-                            </td>
-                            <td className="px-6 py-5 align-middle">
-                              <span className="text-zinc-500 text-[11px]">
-                                {new Date(order.created_at).toLocaleDateString('es-PE', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  year: 'numeric',
-                                })}
-                              </span>
-                            </td>
-                            <td className="px-6 py-5 align-middle text-right">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleDeleteOrder(order.id)}
-                                className="text-red-500 hover:text-red-400 hover:bg-red-500/10 h-9 w-9 p-0 rounded-lg transition-colors"
-                                title="Eliminar de por vida del historial"
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </td>
-                          </tr>
-
-                          {/* Expanded details */}
-                          {isExpanded && (
-                            <tr className="bg-white/[0.01]">
-                              <td colSpan={7} className="px-6 pb-6">
-                                <div className="bg-zinc-900/50 rounded-2xl p-5 border border-white/5 space-y-3 mt-2">
-                                  <div className="grid grid-cols-2 gap-4 mb-4">
-                                    <div>
-                                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">
-                                        Dirección
-                                      </p>
-                                      <p className="text-sm text-zinc-300">{order.address}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">
-                                        ID completo
-                                      </p>
-                                      <p className="text-xs text-zinc-400 font-mono break-all">
-                                        {order.id}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <div className="border-t border-white/5 pt-3">
-                                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">
-                                      Productos
-                                    </p>
-                                    {items.map((it: any, idx: number) => (
-                                      <div
-                                        key={idx}
-                                        className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
-                                      >
-                                        <div className="flex items-center gap-3">
-                                          <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-white/5 overflow-hidden flex-shrink-0">
-                                            <img
-                                              src={resolveProductImageUrl(
-                                                it.name,
-                                                it.category,
-                                                it.image_url
-                                              )}
-                                              alt=""
-                                              className="w-full h-full object-contain"
-                                              onError={(e) => {
-                                                const el = e.currentTarget
-                                                el.onerror = null
-                                                el.src = categoryFallbackImage(it.category)
-                                              }}
-                                            />
-                                          </div>
-                                          <div>
-                                            <p className="text-sm text-zinc-200 font-medium">
-                                              {it.name}
-                                            </p>
-                                            <p className="text-[10px] text-zinc-500">
-                                              ×{it.quantity || 1}
-                                            </p>
-                                          </div>
-                                        </div>
-                                        <span className="text-sm font-bold text-emerald-400 font-tech">
-                                          {formatPEN(
-                                            Number(it.price || 0) * Number(it.quantity || 1)
-                                          )}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
+                        return (
+                          <Fragment key={order.id}>
+                            <tr className="hover:bg-white/[0.02] transition-colors group">
+                              <td className="px-6 py-5 align-middle">
+                                <p className="font-bold text-zinc-100 text-sm">{order.customer_name}</p>
+                                <p className="text-[10px] text-zinc-600 font-mono mt-0.5">
+                                  {order.id.slice(0, 8)}...
+                                </p>
+                              </td>
+                              <td className="px-6 py-5 align-middle">
+                                <span className="text-zinc-400 text-xs">{order.customer_email}</span>
+                              </td>
+                              <td className="px-6 py-5 align-middle">
+                                <button
+                                  onClick={() =>
+                                    setExpandedOrder(isExpanded ? null : order.id)
+                                  }
+                                  className="flex items-center gap-1 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
+                                >
+                                  {items.length} items
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-3 h-3" />
+                                  ) : (
+                                    <ChevronDown className="w-3 h-3" />
+                                  )}
+                                </button>
+                              </td>
+                              <td className="px-6 py-5 align-middle">
+                                <span className="text-emerald-400 font-black font-tech text-base">
+                                  {formatPEN(Number(order.total))}
+                                </span>
+                              </td>
+                              <td className="px-6 py-5 align-middle">
+                                {getStatusBadge(order.status)}
+                              </td>
+                              <td className="px-6 py-5 align-middle">
+                                <span className="text-zinc-500 text-[11px]">
+                                  {new Date(order.created_at).toLocaleDateString('es-PE', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })}
+                                </span>
+                              </td>
+                              <td className="px-6 py-5 align-middle text-right">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteOrder(order.id)}
+                                  className="text-red-500 hover:text-red-400 hover:bg-red-500/10 h-9 w-9 p-0 rounded-lg transition-colors"
+                                  title="Eliminar de por vida del historial"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
                               </td>
                             </tr>
-                          )}
-                        </Fragment>
-                      )
-                    })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
 
-      )}{/* ══════════════ ADD PRODUCT MODAL ══════════════ */}
+                            {/* Expanded details */}
+                            {isExpanded && (
+                              <tr className="bg-white/[0.01]">
+                                <td colSpan={7} className="px-6 pb-6">
+                                  <div className="bg-zinc-900/50 rounded-2xl p-5 border border-white/5 space-y-3 mt-2">
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                      <div>
+                                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">
+                                          Dirección
+                                        </p>
+                                        <p className="text-sm text-zinc-300">{order.address}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">
+                                          ID completo
+                                        </p>
+                                        <p className="text-xs text-zinc-400 font-mono break-all">
+                                          {order.id}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="border-t border-white/5 pt-3">
+                                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">
+                                        Productos
+                                      </p>
+                                      {items.map((it: any, idx: number) => (
+                                        <div
+                                          key={idx}
+                                          className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
+                                        >
+                                          <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-white/5 overflow-hidden flex-shrink-0">
+                                              <img
+                                                src={resolveProductImageUrl(
+                                                  it.name,
+                                                  it.category,
+                                                  it.image_url
+                                                )}
+                                                alt=""
+                                                className="w-full h-full object-contain"
+                                                onError={(e) => {
+                                                  const el = e.currentTarget
+                                                  el.onerror = null
+                                                  el.src = categoryFallbackImage(it.category)
+                                                }}
+                                              />
+                                            </div>
+                                            <div>
+                                              <p className="text-sm text-zinc-200 font-medium">
+                                                {it.name}
+                                              </p>
+                                              <p className="text-[10px] text-zinc-500">
+                                                ×{it.quantity || 1}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <span className="text-sm font-bold text-emerald-400 font-tech">
+                                            {formatPEN(
+                                              Number(it.price || 0) * Number(it.quantity || 1)
+                                            )}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        )
+                      })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+
+        )
+      } {/* ══════════════ ADD PRODUCT MODAL ══════════════ */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="bg-zinc-950 border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
