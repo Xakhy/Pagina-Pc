@@ -1,7 +1,7 @@
 export const CATEGORIES = [
   { id: 'procesadores', name: 'Procesadores', image: '1', color: 'from-emerald-600 to-teal-600' },
-  { id: 'video', name: 'Tarjetas de Video', image: '1', color: 'from-blue-600 to-emerald-600' },
-  { id: 'ram', name: 'Memorias RAM', image: '1', color: 'from-teal-600 to-blue-600' },
+  { id: 'video', name: 'Tarjetas de Video', image: 'https://plain-enam-prod-public.komododecks.com/202606/02/tBM8sGHQ6EXFxlysWcG9/image.png', color: 'from-blue-600 to-emerald-600' },
+  { id: 'ram', name: 'Memorias RAM', image: 'https://plain-enam-prod-public.komododecks.com/202606/02/3Yuiph2FCNpZxDpUbtG6/image.png', color: 'from-teal-600 to-blue-600' },
   { id: 'storage', name: 'Almacenamiento', image: '1', color: 'from-emerald-500 to-emerald-700' },
   { id: 'monitores', name: 'Monitores', image: '1', color: 'from-indigo-500 to-indigo-700' },
   { id: 'boards', name: 'Placas Madre', image: '1', color: 'from-teal-500 to-teal-700' },

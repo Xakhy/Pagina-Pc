@@ -4,7 +4,7 @@ const categoryImage: Record<string, string> = Object.fromEntries(
   CATEGORIES.map((c) => [c.name, c.image])
 )
 
-const DEFAULT_IMAGE = 'https://media1.tenor.com/m/BJ6Hgx_VPc8AAAAC/soul-eater-maka.gif'
+const DEFAULT_IMAGE = 'https://tenor.com/es/view/soul-eater-maka-gif-19913392'
 
 export function resolveProductImageUrl(
   name: string,
