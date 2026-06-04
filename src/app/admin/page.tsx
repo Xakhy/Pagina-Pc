@@ -102,7 +102,7 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/sync')
       if (!res.ok) {
-        const text = await res.text()
+        await res.text() // Read it to consume the body, but don't assign it
         throw new Error(`Respuesta inesperada del servidor (${res.status})`)
       }
       const data = await res.json()

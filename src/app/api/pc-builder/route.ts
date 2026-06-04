@@ -421,7 +421,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown ni texto adicional:
 
         // Determine effective DDR from CPU socket
         // AM5 → always DDR5, AM4 → always DDR4, Intel → user preference or null
-        let effectiveDDR: 'DDR4' | 'DDR5' | null =
+        const effectiveDDR: 'DDR4' | 'DDR5' | null =
             cpuSocket === 'am5' ? 'DDR5' :
                 cpuSocket === 'am4' ? 'DDR4' :
                     (ramGen && ramGen !== 'La IA elige') ? (ramGen as 'DDR4' | 'DDR5') :
