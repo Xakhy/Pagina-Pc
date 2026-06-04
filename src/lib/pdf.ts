@@ -21,7 +21,7 @@ function penText(amount: number) {
   return `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 }
 
-export function generateVoucherPDF(data: VoucherData) {
+export function generateVoucherPDF(data: VoucherData, download = true): string | void {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const W = 210
   const margin = 20
@@ -174,5 +174,10 @@ export function generateVoucherPDF(data: VoucherData) {
   doc.text('Gracias por tu compra en TecnoStore — Este documento es tu comprobante de pago.', W / 2, y + 9, { align: 'center' })
   doc.text('tecnostore.com  |  soporte@tecnostore.com', W / 2, y + 16, { align: 'center' })
 
-  doc.save(`voucher-${data.orderId}.pdf`)
+  if (download) {
+    doc.save(`voucher-${data.orderId}.pdf`)
+  } else {
+    // Return base64 data URI string
+    return doc.output('datauristring')
+  }
 }

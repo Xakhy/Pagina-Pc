@@ -45,15 +45,17 @@ export default function CheckoutPage() {
   const [status, setStatus] = useState<OrderStatus>('idle')
   const [orderId, setOrderId] = useState('')
   const [orderSnapshot, setOrderSnapshot] = useState<OrderSnapshot | null>(null)
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', address: '', phone: '' })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [sessionEmail, setSessionEmail] = useState<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.email) {
-        setSessionEmail(session.user.email)
-        setForm(f => ({ ...f, email: session.user.email }))
+      const userEmail = session?.user?.email
+      if (userEmail) {
+        setSessionEmail(userEmail)
+        setForm(f => ({ ...f, email: userEmail }))
       }
     })
   }, [supabase.auth])
@@ -162,6 +164,56 @@ export default function CheckoutPage() {
     })
   }
 
+  const handleSendEmail = async () => {
+    if (!orderSnapshot) return
+    
+    setIsSendingEmail(true)
+    const mainLabel =
+      paymentMain === 'card'
+        ? 'Tarjeta'
+        : paymentMain === 'transfer'
+          ? 'Transferencia'
+          : 'Contra entrega'
+          
+    try {
+      const pdfBase64 = generateVoucherPDF({
+        orderId,
+        customerName: form.name,
+        customerEmail: form.email,
+        address: form.address,
+        items: orderSnapshot.items,
+        total: orderSnapshot.total,
+        date: new Date().toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }),
+        paymentMethod: mainLabel,
+        paymentDetail: orderSnapshot.paymentSub,
+      }, false) // false = return base64 instead of download
+
+      const res = await fetch('/api/send-voucher', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.email,
+          name: form.name,
+          orderId,
+          pdfBase64
+        })
+      })
+
+      if (!res.ok) throw new Error('Error enviando el correo')
+      
+      toast.success(`Voucher enviado a ${form.email}`)
+    } catch (error) {
+      console.error(error)
+      toast.error('Hubo un error al enviar el correo. Intenta de nuevo.')
+    } finally {
+      setIsSendingEmail(false)
+    }
+  }
+
   if (items.length === 0 && status === 'idle') {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center px-4">
@@ -231,13 +283,12 @@ export default function CheckoutPage() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              toast.success(`Voucher enviado a ${form.email}`)
-            }}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/20 transition-colors"
+            onClick={handleSendEmail}
+            disabled={isSendingEmail}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/20 transition-colors disabled:opacity-50"
           >
-            <Mail className="h-4 w-4" />
-            Enviar voucher al correo
+            {isSendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+            {isSendingEmail ? 'Enviando...' : 'Enviar voucher al correo'}
           </button>
           <Link href="/productos" className="w-full inline-flex items-center justify-center border border-white/10 text-gray-400 hover:text-white px-4 py-2 rounded-md transition-colors text-sm font-medium">
             Seguir comprando
