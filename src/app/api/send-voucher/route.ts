@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server'
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 
 export async function POST(req: Request) {
-  // Inicializar Resend dentro del handler para evitar errores de build en Vercel
-  // si la variable de entorno no está disponible durante la compilación estática.
-  const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder')
-
   try {
     const { email, pdfBase64, orderId, name } = await req.json()
 
@@ -13,13 +9,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Faltan datos requeridos' }, { status: 400 })
     }
 
-    // El string base64 usualmente viene con el prefijo data:application/pdf;base64,
-    // Resend necesita solo el contenido base64 para los adjuntos
+    // Configurar el transporte de nodemailer usando la cuenta de Gmail del usuario
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+    })
+
+    // Limpiar el string de base64 si es necesario
     const base64Content = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64
 
-    const { data, error } = await resend.emails.send({
-      from: 'Pagina PC <onboarding@resend.dev>',
-      to: [email],
+    // Configurar y enviar el correo
+    const mailOptions = {
+      from: `"Pagina PC" <${process.env.GMAIL_USER}>`,
+      to: email,
       subject: `¡Tu pedido ${orderId} está confirmado! - TecnoStore`,
       html: `
         <!DOCTYPE html>
@@ -68,17 +73,15 @@ export async function POST(req: Request) {
       attachments: [
         {
           filename: `voucher-${orderId}.pdf`,
-          content: base64Content,
+          content: Buffer.from(base64Content, 'base64'),
+          contentType: 'application/pdf',
         },
       ],
-    })
-
-    if (error) {
-      console.error('Error de Resend:', error)
-      return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    return NextResponse.json({ success: true, data })
+    const info = await transporter.sendMail(mailOptions)
+
+    return NextResponse.json({ success: true, messageId: info.messageId })
   } catch (error: any) {
     console.error('Error al enviar voucher:', error)
     return NextResponse.json({ error: error.message || 'Error interno del servidor' }, { status: 500 })
