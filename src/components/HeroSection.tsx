@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Cpu, Monitor } from 'lucide-react'
+import { Cpu } from 'lucide-react'
 
 export function HeroSection() {
   return (
