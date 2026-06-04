@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useCart } from '@/lib/store'
+import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { ShoppingCart, FileText, CheckCircle2, Loader2, ArrowLeft } from 'lucide-react'
+import { ShoppingCart, FileText, CheckCircle2, Loader2, ArrowLeft, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { generateVoucherPDF } from '@/lib/pdf'
 import { formatPEN, formatUSD, EXCHANGE_RATE, cn } from '@/lib/utils'
@@ -46,6 +47,16 @@ export default function CheckoutPage() {
   const [orderSnapshot, setOrderSnapshot] = useState<OrderSnapshot | null>(null)
   const [form, setForm] = useState({ name: '', email: '', address: '', phone: '' })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) {
+        setSessionEmail(session.user.email)
+        setForm(f => ({ ...f, email: session.user.email }))
+      }
+    })
+  }, [supabase.auth])
 
   const [paymentMain, setPaymentMain] = useState<PaymentMain>('transfer')
   const [paymentSub, setPaymentSub] = useState('Yape')
@@ -218,6 +229,16 @@ export default function CheckoutPage() {
             <FileText className="h-4 w-4" />
             Descargar Voucher PDF
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              toast.success(`Voucher enviado a ${form.email}`)
+            }}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/20 transition-colors"
+          >
+            <Mail className="h-4 w-4" />
+            Enviar voucher al correo
+          </button>
           <Link href="/productos" className="w-full inline-flex items-center justify-center border border-white/10 text-gray-400 hover:text-white px-4 py-2 rounded-md transition-colors text-sm font-medium">
             Seguir comprando
           </Link>
@@ -250,7 +271,7 @@ export default function CheckoutPage() {
                   { id: 'email', label: 'Email', placeholder: 'juan@email.com', type: 'email' },
                   { id: 'phone', label: 'Teléfono', placeholder: '+51 999 000 000', type: 'tel' },
                   { id: 'address', label: 'Dirección de entrega', placeholder: 'Calle, número, ciudad', type: 'text' },
-                ].map((field) => (
+                ].filter(field => !(field.id === 'email' && sessionEmail)).map((field) => (
                   <div key={field.id} className="space-y-1.5">
                     <Label htmlFor={field.id} className="text-gray-300 text-sm">
                       {field.label}

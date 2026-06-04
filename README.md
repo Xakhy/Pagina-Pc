@@ -1,6 +1,6 @@
 # TechBuilds 🖥️
 ### Tienda online de componentes PC + PC Builder con IA
-> Proyecto académico — Ingeniería de Software con IA · v0.5.0
+> Proyecto académico — Ingeniería de Software con IA · Semana 5
 
 ---
 
