@@ -562,7 +562,8 @@
 
 /* Scrollbar minimalista */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
+  height: 3px; /* horizontal scrollbars */
 }
 
 ::-webkit-scrollbar-track {
@@ -580,6 +581,23 @@
 
 .light ::-webkit-scrollbar-track {
   background: #f4f4f5;
+}
+
+/* Ultra-thin horizontal scrollbar for category pills */
+.scrollbar-thin-x {
+  scrollbar-width: thin;
+  scrollbar-color: #534AB7 transparent;
+}
+.scrollbar-thin-x::-webkit-scrollbar {
+  height: 2px;
+}
+.scrollbar-thin-x::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 0 8px;
+}
+.scrollbar-thin-x::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #6d28d9, #818cf8);
+  border-radius: 999px;
 }
 
 /* Tech grid patterns */

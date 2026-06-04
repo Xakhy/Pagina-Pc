@@ -43,14 +43,21 @@ export function HeroSection() {
             </div>
           </div>
 
-          <div className="hidden lg:flex items-center justify-center p-12 bg-zinc-100 dark:bg-zinc-900/50 rounded-[3rem] border border-zinc-200 dark:border-white/5 aspect-square relative overflow-hidden group">
-            <div className="absolute inset-0 bg-indigo-500/5 group-hover:bg-indigo-500/10 transition-colors" />
-            <div className="relative z-10 text-center">
-              <Monitor className="w-48 h-48 text-indigo-200/20 mb-4" />
-              <span className="text-xs font-bold text-zinc-600 uppercase tracking-[0.3em]">Hardware Experience</span>
-            </div>
-            <div className="absolute top-10 right-10 w-24 h-24 bg-indigo-500/20 rounded-full blur-3xl" />
-            <div className="absolute bottom-10 left-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
+          <div className="hidden lg:flex items-center justify-center bg-zinc-100 dark:bg-zinc-900/50 rounded-[3rem] border border-zinc-200 dark:border-white/5 relative overflow-hidden group shadow-2xl">
+            <div className="absolute inset-0 bg-indigo-500/5 group-hover:bg-indigo-500/10 transition-colors z-10 pointer-events-none" />
+
+            {/* ========================================= */}
+            {/* 🖼️ PON TU IMAGEN PERSONALIZADA AQUÍ 🖼️ */}
+            {/* ========================================= */}
+            <img
+              src="https://w.wallhaven.cc/full/gw/wallhaven-gw9mp3.jpg"
+              alt="Hardware Custom"
+              className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105 relative z-20"
+            />
+            {/* ========================================= */}
+
+            <div className="absolute top-10 right-10 w-24 h-24 bg-indigo-500/40 rounded-full blur-3xl z-0 pointer-events-none" />
+            <div className="absolute bottom-10 left-10 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl z-0 pointer-events-none" />
           </div>
         </div>
       </div>

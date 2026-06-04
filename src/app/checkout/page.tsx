@@ -46,6 +46,7 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState('')
   const [orderSnapshot, setOrderSnapshot] = useState<OrderSnapshot | null>(null)
   const [isSendingEmail, setIsSendingEmail] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', address: '', phone: '' })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [sessionEmail, setSessionEmail] = useState<string | null>(null)
@@ -205,7 +206,8 @@ export default function CheckoutPage() {
 
       if (!res.ok) throw new Error('Error enviando el correo')
       
-      toast.success(`Voucher enviado a ${form.email}`)
+      setEmailSent(true)
+      toast.success(`✅ Voucher enviado a ${form.email}`)
     } catch (error) {
       console.error(error)
       toast.error('Hubo un error al enviar el correo. Intenta de nuevo.')
@@ -231,68 +233,119 @@ export default function CheckoutPage() {
 
   if (status === 'success') {
     const paid = orderSnapshot?.total ?? 0
+    const paymentHuman =
+      orderSnapshot?.paymentMain === 'card'
+        ? 'Tarjeta'
+        : orderSnapshot?.paymentMain === 'transfer'
+          ? 'Transferencia'
+          : 'Contra entrega'
     return (
-      <div className="min-h-screen pt-24 flex items-center justify-center px-4">
-        <div className="max-w-md w-full glass rounded-3xl p-10 text-center space-y-6 border border-green-500/20">
-          <div className="w-20 h-20 mx-auto rounded-full bg-green-500/20 flex items-center justify-center">
-            <CheckCircle2 className="w-10 h-10 text-green-400" />
+      <div className="min-h-screen flex items-center justify-center px-4 py-24">
+        <div className="max-w-lg w-full" style={{ fontFamily: 'Outfit, sans-serif' }}>
+          {/* Header success banner */}
+          <div className="rounded-3xl overflow-hidden border border-white/10" style={{ background: 'rgba(10,10,20,0.85)', backdropFilter: 'blur(24px)' }}>
+            {/* Top gradient bar */}
+            <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #6d28d9, #10b981, #6d28d9)' }} />
+
+            {/* Check icon + title */}
+            <div className="px-8 pt-10 pb-6 text-center border-b border-white/5">
+              <div className="relative inline-flex mb-6">
+                <div className="absolute inset-0 rounded-full animate-ping" style={{ background: 'rgba(16,185,129,0.2)', animationDuration: '2s' }} />
+                <div className="relative w-20 h-20 rounded-full flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.15)', border: '1.5px solid rgba(16,185,129,0.4)' }}>
+                  <CheckCircle2 className="w-9 h-9" style={{ color: '#34d399' }} />
+                </div>
+              </div>
+              <h2 className="text-4xl font-black text-white mb-1 tracking-tight">¡Pedido Confirmado!</h2>
+              <p className="text-gray-400 text-base">
+                Gracias, <span className="text-white font-semibold">{form.name}</span> — ya estamos en ello
+              </p>
+            </div>
+
+            {/* Order info grid */}
+            <div className="px-8 py-6 space-y-4">
+              {/* Order ID */}
+              <div className="rounded-2xl px-5 py-4" style={{ background: 'rgba(109,40,217,0.1)', border: '1px solid rgba(109,40,217,0.25)' }}>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-1">Número de orden</p>
+                <p className="text-2xl font-black tracking-widest" style={{ color: '#a78bfa', fontFamily: 'monospace' }}>{orderId}</p>
+              </div>
+
+              {/* Total + Payment row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl px-4 py-4" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-gray-500 mb-1">Total pagado</p>
+                  <p className="text-xl font-black" style={{ color: '#34d399' }}>{formatPEN(paid)}</p>
+                  <p className="text-[11px] text-gray-600 mt-0.5">≈ {formatUSD(paid / EXCHANGE_RATE)}</p>
+                </div>
+                <div className="rounded-2xl px-4 py-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-gray-500 mb-1">Método de pago</p>
+                  <p className="text-sm font-bold text-white">{orderSnapshot?.paymentSub}</p>
+                  <p className="text-[11px] text-gray-600 mt-0.5">{paymentHuman}</p>
+                </div>
+              </div>
+
+              {/* Email info */}
+              <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <Mail className="w-4 h-4 flex-shrink-0" style={{ color: '#6b7280' }} />
+                <p className="text-sm text-gray-400">
+                  Confirmación a{' '}
+                  <span className="text-gray-200 font-medium">{form.email}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="px-8 pb-8 space-y-3">
+              <button
+                type="button"
+                id="download-voucher-btn"
+                onClick={handleDownloadPDF}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%)', boxShadow: '0 4px 24px rgba(109,40,217,0.3)' }}
+              >
+                <FileText className="h-4 w-4" />
+                Descargar Voucher PDF
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSendEmail}
+                disabled={isSendingEmail || emailSent}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold transition-all active:scale-[0.98] disabled:cursor-not-allowed"
+                style={{
+                  background: emailSent
+                    ? 'rgba(16,185,129,0.15)'
+                    : 'rgba(255,255,255,0.07)',
+                  border: emailSent
+                    ? '1px solid rgba(16,185,129,0.4)'
+                    : '1px solid rgba(255,255,255,0.1)',
+                  color: emailSent ? '#34d399' : '#ffffff',
+                  opacity: isSendingEmail ? 0.7 : 1,
+                }}
+              >
+                {isSendingEmail ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
+                ) : emailSent ? (
+                  <><CheckCircle2 className="h-4 w-4" /> ¡Enviado a tu correo!</>
+                ) : (
+                  <><Mail className="h-4 w-4" /> Enviar voucher al correo</>
+                )}
+              </button>
+
+              <Link
+                href="/productos"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+                style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Seguir comprando
+              </Link>
+            </div>
           </div>
-          <div>
-            <h2
-              className="text-3xl font-black text-white mb-2"
-              style={{ fontFamily: 'Outfit, sans-serif' }}
-            >
-              ¡Pedido Confirmado!
-            </h2>
-            <p className="text-gray-400">
-              Gracias, <span className="text-white font-medium">{form.name}</span>
-            </p>
-          </div>
-          <div className="glass rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-1">Número de orden</p>
-            <p className="text-2xl font-black text-violet-400 tracking-wider">{orderId}</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left">
-            <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Total pagado</p>
-            <p className="text-2xl font-black text-emerald-400 font-mono">{formatPEN(paid)}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              ≈ {formatUSD(paid / EXCHANGE_RATE)} referencial
-            </p>
-            <p className="text-xs text-gray-500 mt-2">
-              Pago: {orderSnapshot?.paymentSub} (
-              {orderSnapshot?.paymentMain === 'card'
-                ? 'tarjeta'
-                : orderSnapshot?.paymentMain === 'transfer'
-                  ? 'transferencia'
-                  : 'contra entrega'}
-              )
-            </p>
-          </div>
-          <p className="text-sm text-gray-500">
-            Recibirás una confirmación en{' '}
-            <span className="text-gray-300">{form.email}</span>
+
+          {/* Footer note */}
+          <p className="text-center text-xs text-gray-600 mt-5">
+            Tu pedido quedó registrado y será procesado a la brevedad.
           </p>
-          <button
-            type="button"
-            id="download-voucher-btn"
-            onClick={handleDownloadPDF}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-3 text-sm font-bold text-white hover:bg-violet-500"
-          >
-            <FileText className="h-4 w-4" />
-            Descargar Voucher PDF
-          </button>
-          <button
-            type="button"
-            onClick={handleSendEmail}
-            disabled={isSendingEmail}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/20 transition-colors disabled:opacity-50"
-          >
-            {isSendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-            {isSendingEmail ? 'Enviando...' : 'Enviar voucher al correo'}
-          </button>
-          <Link href="/productos" className="w-full inline-flex items-center justify-center border border-white/10 text-gray-400 hover:text-white px-4 py-2 rounded-md transition-colors text-sm font-medium">
-            Seguir comprando
-          </Link>
         </div>
       </div>
     )

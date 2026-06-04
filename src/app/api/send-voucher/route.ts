@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 export async function POST(req: Request) {
+  // Inicializar Resend dentro del handler para evitar errores de build en Vercel
+  // si la variable de entorno no está disponible durante la compilación estática.
+  const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder')
+
   try {
     const { email, pdfBase64, orderId, name } = await req.json()
 

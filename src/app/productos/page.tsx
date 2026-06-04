@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { ProductCard } from '@/components/ProductCard'
 import { CATEGORIES } from '@/lib/categories'
 import { Loader2, Search } from 'lucide-react'
@@ -17,6 +17,71 @@ function ProductosContent() {
   const [query, setQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState(categoriaParam)
   const supabase = createClient()
+
+  // Custom scroll indicator
+  const pillsRef = useRef<HTMLDivElement>(null)
+  const trackRef = useRef<HTMLDivElement>(null)
+  const [thumbLeft, setThumbLeft] = useState(0)
+  const [thumbWidth, setThumbWidth] = useState(100)
+
+  const updateScrollBar = () => {
+    const el = pillsRef.current
+    if (!el) return
+    const ratio = el.scrollWidth > el.clientWidth
+      ? el.clientWidth / el.scrollWidth
+      : 1
+    setThumbWidth(ratio * 100)
+    setThumbLeft((el.scrollLeft / el.scrollWidth) * 100)
+  }
+
+  const handleTrackPointerDown = (e: React.PointerEvent) => {
+    const track = trackRef.current
+    const pills = pillsRef.current
+    if (!track || !pills) return
+
+    // Prevent default to avoid text selection right away
+    e.preventDefault()
+
+    // Setup dragging
+    const startX = e.clientX
+    const startScrollLeft = pills.scrollLeft 
+
+    // Add a class to body to completely prevent text selection during drag
+    document.body.style.userSelect = 'none'
+
+    const onPointerMove = (e: PointerEvent) => {
+      e.preventDefault()
+      const deltaX = e.clientX - startX
+      
+      // Calculate how much to scroll based on mouse movement relative to track
+      const rect = track.getBoundingClientRect()
+      const deltaScroll = (deltaX / rect.width) * pills.scrollWidth
+      
+      // Update scroll without smooth behavior for immediate drag response
+      pills.scrollLeft = startScrollLeft + deltaScroll
+    }
+
+    const onPointerUp = () => {
+      document.body.style.userSelect = '' // restore text selection
+      document.removeEventListener('pointermove', onPointerMove)
+      document.removeEventListener('pointerup', onPointerUp)
+    }
+
+    document.addEventListener('pointermove', onPointerMove)
+    document.addEventListener('pointerup', onPointerUp)
+  }
+
+  useEffect(() => {
+    updateScrollBar()
+    const el = pillsRef.current
+    if (!el) return
+    el.addEventListener('scroll', updateScrollBar)
+    window.addEventListener('resize', updateScrollBar)
+    return () => {
+      el.removeEventListener('scroll', updateScrollBar)
+      window.removeEventListener('resize', updateScrollBar)
+    }
+  }, [])
 
   // Sync category when URL param changes (e.g. back/forward navigation)
   useEffect(() => {
@@ -69,19 +134,46 @@ function ProductosContent() {
           </div>
         </div>
 
-        <div className="flex gap-3 overflow-x-auto pb-8 scrollbar-hide">
-          {['Todas', ...CATEGORIES.map(c => c.name)].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${activeCategory === cat
-                ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                : 'bg-zinc-900/50 border-white/5 text-zinc-500 hover:text-white hover:bg-zinc-900'
+        {/* Category pills with custom scroll indicator */}
+        <div className="mb-10">
+          {/* Pills row — native scrollbar hidden */}
+          <div
+            ref={pillsRef}
+            className="flex gap-2 overflow-x-auto pills-no-bar"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            <style>{`.pills-no-bar::-webkit-scrollbar { display: none; }`}</style>
+            {['Todas', ...CATEGORIES.map(c => c.name)].map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`flex-shrink-0 px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-200 whitespace-nowrap border ${
+                  activeCategory === cat
+                    ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-500/25'
+                    : 'bg-zinc-900/40 border-white/5 text-zinc-500 hover:text-white hover:border-white/10 hover:bg-zinc-900'
                 }`}
-            >
-              {cat}
-            </button>
-          ))}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom scroll indicator — now interactive */}
+          <div 
+            ref={trackRef}
+            onPointerDown={handleTrackPointerDown}
+            className="mt-4 mb-2 relative h-1.5 w-full rounded-full bg-white/5 cursor-pointer hover:bg-white/10 transition-colors group"
+          >
+            <div
+              className="absolute top-0 h-full rounded-full group-active:transition-none transition-all duration-75"
+              style={{
+                left: `${thumbLeft}%`,
+                width: `${thumbWidth}%`,
+                background: 'linear-gradient(90deg, #6d28d9, #818cf8)',
+                boxShadow: '0 0 8px rgba(109,40,217,0.5)',
+              }}
+            />
+          </div>
         </div>
 
         <div className="min-h-[400px]">
