@@ -416,7 +416,7 @@ export default function PCBuilderPage() {
             </div>
           </div>
         </div>
-        {/* Side Summary Panel */}
+        {/* Side Summary Panel — inside the grid as col-span-4 */}
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-[#0c0c0e]/80 backdrop-blur-2xl border border-indigo-500/30 rounded-[2.5rem] p-8 shadow-2xl sticky top-24">
             <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-8 flex items-center gap-2">
@@ -462,7 +462,10 @@ export default function PCBuilderPage() {
             </div>
           </div>
         </div>
+        {/* ↑ closes lg:col-span-4 */}
       </div>
+      {/* ↑ closes grid lg:grid-cols-12 */}
+
       {/* Build Detail Grid */}
       {showBuild && result && Array.isArray(result.build) && result.build.length > 0 && (
         <div className="mt-16 space-y-12 animate-in fade-in slide-in-from-bottom-10 duration-700">

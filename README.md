@@ -80,7 +80,7 @@ GEMINI_API_KEY=tu_gemini_key
 | Semana 1 | ✅ | Setup + catálogo de productos |
 | Semana 2 | ✅ | PC Builder IA + carrito + checkout + voucher PDF |
 | Semana 3 | ✅ | Mejoras UI + modo oscuro/claro + perfil de usuario |
-| Semana 4 | 🔄 | Panel admin completo + optimizaciones |
+| Semana 4 | ✅ | Panel admin completo + optimizaciones |
 | Semana 5 | ⏳ | Polish final + deploy a producción |
 
 ---

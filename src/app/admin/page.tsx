@@ -13,13 +13,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+// Select de shadcn reemplazado por select nativo (fix z-index en Dialog)
 import {
   Plus, Pencil, Trash2, Loader2, Save, RefreshCw,
   LayoutDashboard, Package, ClipboardList, X,
@@ -106,13 +100,17 @@ export default function AdminPage() {
   const handleSync = async () => {
     setSyncing(true)
     try {
-      const res = await fetch('/api/seed')
+      const res = await fetch('/api/sync')
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(`Respuesta inesperada del servidor (${res.status})`)
+      }
       const data = await res.json()
       if (data.success) {
-        toast.success(`Sincronización exitosa: ${data.count} productos cargados`)
-        fetchProducts()
+        setProducts(data.products || [])
+        toast.success(`Sincronización exitosa: ${data.count} productos actualizados`)
       } else {
-        throw new Error(data.error)
+        throw new Error(data.error || 'Error desconocido')
       }
     } catch (err: any) {
       toast.error(`Error de sincronización: ${err.message}`)
@@ -1059,28 +1057,24 @@ export default function AdminPage() {
                   Categoría *
                 </Label>
 
-                <Select
+                <select
                   value={addForm.category}
-                  onValueChange={(val) => {
-                    if (val) setAddForm({ ...addForm, category: val })
+                  onChange={(e) => {
+                    if (e.target.value) setAddForm({ ...addForm, category: e.target.value })
                   }}
+                  className="w-full h-11 bg-zinc-900 border border-white/10 rounded-md px-3 text-sm text-white focus:outline-none focus:border-indigo-500/50 cursor-pointer"
                 >
-                  <SelectTrigger className="bg-zinc-900 border-white/10 h-11 text-white">
-                    <SelectValue placeholder="Seleccionar..." />
-                  </SelectTrigger>
-
-                  <SelectContent className="bg-zinc-900 border-white/10 z-[9999] pointer-events-auto">
-                    {CATEGORIES.map((cat) => (
-                      <SelectItem
-                        key={cat}
-                        value={cat}
-                        className="text-white cursor-pointer"
-                      >
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <option value="" disabled className="bg-zinc-900 text-zinc-500">Seleccionar...</option>
+                  {CATEGORIES.map((cat) => (
+                    <option
+                      key={cat}
+                      value={cat}
+                      className="bg-zinc-900 text-white"
+                    >
+                      {cat}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-2">

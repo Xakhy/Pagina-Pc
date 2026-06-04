@@ -1,18 +1,27 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { ProductCard } from '@/components/ProductCard'
 import { CATEGORIES } from '@/lib/categories'
 import { Loader2, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
+import { useSearchParams } from 'next/navigation'
 
-export default function ProductosPage() {
+function ProductosContent() {
+  const searchParams = useSearchParams()
+  const categoriaParam = searchParams.get('categoria') || 'Todas'
+
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
-  const [activeCategory, setActiveCategory] = useState('Todas')
+  const [activeCategory, setActiveCategory] = useState(categoriaParam)
   const supabase = createClient()
+
+  // Sync category when URL param changes (e.g. back/forward navigation)
+  useEffect(() => {
+    setActiveCategory(categoriaParam)
+  }, [categoriaParam])
 
   const fetchProducts = useCallback(async () => {
     setLoading(true)
@@ -100,5 +109,17 @@ export default function ProductosPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ProductosPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen pt-24 pb-20 px-4 bg-zinc-950 flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
+      </div>
+    }>
+      <ProductosContent />
+    </Suspense>
   )
 }
