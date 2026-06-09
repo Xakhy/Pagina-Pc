@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -13,23 +13,30 @@ export async function GET() {
       )
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+    // Crear cliente con service role (bypasses RLS)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
+      db: { schema: 'public' }
     })
 
-    const { data, error } = await supabaseAdmin
+    // Log para debug
+    console.log('[admin/orders GET] Buscando órdenes...')
+
+    const { data, error, status } = await supabase
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false })
 
+    console.log('[admin/orders GET] Status:', status, 'Error:', error?.message, 'Data count:', data?.length)
+
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: error.message, details: error }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, orders: data ?? [] })
   } catch (err: any) {
-    console.error('GET /api/admin/orders error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[admin/orders GET] Error:', err)
+    return NextResponse.json({ error: err.message || 'Error interno' }, { status: 500 })
   }
 }
 
