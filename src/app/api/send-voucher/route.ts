@@ -48,7 +48,7 @@ export async function POST(req: Request) {
             disposition: 'attachment',
           }],
         }
-        const resp = await sgMail.send(msg)
+        await sgMail.send(msg)  // <- Usa 'await' directamente, sin capturar en variable
         console.log('SendGrid OK')
         return NextResponse.json({ success: true, provider: 'sendgrid' })
       } catch (sgErr: any) {
