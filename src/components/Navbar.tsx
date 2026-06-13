@@ -16,6 +16,27 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
+/** Extrae y mejora la URL del avatar del proveedor OAuth (Google, GitHub, Discord…) */
+function getAvatarUrl(user: any): string | null {
+  let url: string | null =
+    user?.user_metadata?.avatar_url ||
+    user?.user_metadata?.picture ||
+    null
+
+  if (!url) return null
+
+  // Google: reemplaza el tamaño por defecto (s96) a s200 para mayor nitidez
+  url = url.replace(/=s\d+-c$/, '=s200-c')
+
+  // GitHub: añade parámetro de tamaño si no lo tiene
+  if (url.includes('avatars.githubusercontent.com') && !url.includes('size=')) {
+    url += (url.includes('?') ? '&' : '?') + 'size=200'
+  }
+
+  return url
+}
+
+
 export function Navbar() {
   const { getTotalItems, toggleCart } = useCart()
   const { resolvedTheme, setTheme } = useTheme()
@@ -159,20 +180,54 @@ export function Navbar() {
                   <User className="h-4 w-4" />
                 </div>
               ) : (
-                <div className="h-10 w-10 sm:w-[160px] bg-transparent shrink-0" />
+                /* Ocupa el mismo espacio que el botón para no causar layout shift */
+                <div className="h-10 w-10 shrink-0" />
               )
             ) : user ? (
               <DropdownMenu>
-                {/* Fix: DropdownMenuTrigger sin asChild — button directo */}
-                <DropdownMenuTrigger className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/5 bg-zinc-900 text-zinc-400 outline-none transition hover:bg-zinc-800 hover:text-white">
-                  <User className="h-4 w-4" />
+                {/* Trigger: posicionamos la imagen con inset-0 para llenar el botón sin blur */}
+                <DropdownMenuTrigger
+                  id="user-avatar-btn"
+                  className="relative h-10 w-10 shrink-0 rounded-full border border-indigo-500/30 bg-zinc-900 text-zinc-400 outline-none transition hover:border-indigo-400/60 hover:scale-105 overflow-hidden"
+                >
+                  {getAvatarUrl(user) ? (
+                    <img
+                      src={getAvatarUrl(user)!}
+                      alt={user.user_metadata?.full_name || 'Avatar'}
+                      className="absolute inset-0 h-full w-full object-cover"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  ) : (
+                    <User className="absolute inset-0 m-auto h-4 w-4" />
+                  )}
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-zinc-900 border-white/10 text-white">
-                  <DropdownMenuSeparator className="bg-white/5" />
-                  <DropdownMenuSeparator className="bg-white/5" />
-                  <DropdownMenuItem className="text-xs text-gray-400 focus:bg-white/5 focus:text-white">
-                    {user.email}
-                  </DropdownMenuItem>
+                <DropdownMenuContent align="end" className="w-60 bg-zinc-900 border-white/10 text-white">
+                  {/* Header con avatar + nombre */}
+                  <div className="flex items-center gap-3 px-3 py-3 border-b border-white/5">
+                    {getAvatarUrl(user) ? (
+                      <img
+                        src={getAvatarUrl(user)!}
+                        alt="Avatar"
+                        className="h-9 w-9 rounded-full object-cover flex-shrink-0 border border-indigo-500/30"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="h-9 w-9 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
+                        <User className="h-4 w-4 text-indigo-400" />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      {user.user_metadata?.full_name && (
+                        <p className="text-sm font-bold text-white truncate leading-none mb-0.5">
+                          {user.user_metadata.full_name}
+                        </p>
+                      )}
+                      <p className="text-[10px] text-zinc-500 truncate">{user.email}</p>
+                    </div>
+                  </div>
                   {/* Fix: Link dentro de DropdownMenuItem en vez de asChild */}
                   <DropdownMenuItem className="p-0 focus:bg-white/5">
                     <Link href="/perfil" className="w-full px-2 py-1.5 text-sm focus:text-white">Perfil</Link>

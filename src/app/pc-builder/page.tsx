@@ -479,7 +479,7 @@ export default function PCBuilderPage() {
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {(result.build as any[]).map(({ product, reason }: any) => (
+              {(result.build as any[]).map(({ product, reason }: { product: any; reason?: string }) => (
                 <div key={product.id} className="group bg-zinc-900/50 backdrop-blur-md border border-white/5 rounded-[3rem] overflow-hidden hover:border-indigo-500/50 transition-all shadow-2xl">
                   <div className="aspect-square bg-zinc-950 flex items-center justify-center p-12 border-b border-white/5 relative">
                     <img
@@ -504,7 +504,9 @@ export default function PCBuilderPage() {
                     <h4 className="text-xs font-bold text-white line-clamp-2 h-10 mb-3 uppercase leading-tight font-tech group-hover:text-indigo-400 transition-colors">
                       {product.name}
                     </h4>
-                    <p className="text-[10px] text-zinc-600 leading-relaxed mb-8 italic font-medium">{reason}</p>
+                    {reason && (
+                      <p className="text-[10px] text-zinc-600 leading-relaxed mb-4 italic font-medium">{reason}</p>
+                    )}
                     <div className="flex items-center justify-between pt-5 border-t border-white/5">
                       <span className="text-xl font-bold text-emerald-400 font-tech" suppressHydrationWarning>S/ {new Intl.NumberFormat('es-PE').format(product.price || 0)}</span>
                       <button

@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { ShoppingCart, FileText, CheckCircle2, Loader2, ArrowLeft, Mail } from 'lucide-react'
+import { ShoppingCart, FileText, CheckCircle2, Loader2, ArrowLeft, Mail, Eye } from 'lucide-react'
 import Link from 'next/link'
 import { generateVoucherPDF } from '@/lib/pdf'
 import { formatPEN, formatUSD, EXCHANGE_RATE, cn } from '@/lib/utils'
@@ -18,7 +18,6 @@ import { createClient } from '@/lib/supabase/client'
 import type { CartItem } from '@/lib/supabase'
 
 type OrderStatus = 'idle' | 'processing' | 'success'
-
 type PaymentMain = 'card' | 'transfer' | 'cash'
 
 type OrderSnapshot = {
@@ -37,6 +36,13 @@ const MAIN_OPTIONS: { id: PaymentMain; label: string }[] = [
 const TRANSFER_APPS = ['Yape', 'Plin', 'BIM', 'Ligo', 'Tunki', 'Interbank App']
 const CARD_BANKS = ['BCP', 'BBVA', 'Interbank', 'Scotiabank', 'Banbif', 'Otros']
 
+/** Convierte PaymentMain a texto legible — helper unificado */
+function paymentLabel(main: PaymentMain): string {
+  if (main === 'card') return 'Tarjeta'
+  if (main === 'transfer') return 'Transferencia'
+  return 'Contra entrega'
+}
+
 export default function CheckoutPage() {
   const { items, getTotalPrice, clearCart } = useCart()
   const total = getTotalPrice()
@@ -45,11 +51,15 @@ export default function CheckoutPage() {
   const [status, setStatus] = useState<OrderStatus>('idle')
   const [orderId, setOrderId] = useState('')
   const [orderSnapshot, setOrderSnapshot] = useState<OrderSnapshot | null>(null)
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
   const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', address: '', phone: '' })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [sessionEmail, setSessionEmail] = useState<string | null>(null)
+
+  const [paymentMain, setPaymentMain] = useState<PaymentMain>('transfer')
+  const [paymentSub, setPaymentSub] = useState('Yape')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -60,9 +70,6 @@ export default function CheckoutPage() {
       }
     })
   }, [supabase.auth])
-
-  const [paymentMain, setPaymentMain] = useState<PaymentMain>('transfer')
-  const [paymentSub, setPaymentSub] = useState('Yape')
 
   const setMain = (id: PaymentMain) => {
     setPaymentMain(id)
@@ -91,6 +98,7 @@ export default function CheckoutPage() {
     const newOrderId = `TS-${Date.now().toString().slice(-8)}`
     const snapshotItems: CartItem[] = items.map((i) => ({ ...i }))
     const snapshotTotal = getTotalPrice()
+    const mainLabel = paymentLabel(paymentMain)
 
     setOrderSnapshot({
       items: snapshotItems,
@@ -100,6 +108,27 @@ export default function CheckoutPage() {
     })
     setOrderId(newOrderId)
     setStatus('success')
+
+    // Generar preview del PDF automáticamente al confirmar la orden
+    const previewDataUri = generateVoucherPDF({
+      orderId: newOrderId,
+      customerName: form.name,
+      customerEmail: form.email,
+      address: form.address,
+      items: snapshotItems,
+      total: snapshotTotal,
+      date: new Date().toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+      paymentMethod: mainLabel,
+      paymentDetail: paymentSub,
+    }, false) // false = retorna base64 en vez de descargar
+
+    if (typeof previewDataUri === 'string') {
+      setPdfPreviewUrl(previewDataUri)
+    }
 
     const {
       data: { session },
@@ -130,24 +159,8 @@ export default function CheckoutPage() {
     clearCart()
   }
 
-  const paymentLabel = () => {
-    const mainHuman =
-      paymentMain === 'card'
-        ? 'Tarjeta'
-        : paymentMain === 'transfer'
-          ? 'Transferencia'
-          : 'Contra entrega'
-    return `${mainHuman}: ${paymentSub}`
-  }
-
   const handleDownloadPDF = () => {
     if (!orderSnapshot) return
-    const mainLabel =
-      paymentMain === 'card'
-        ? 'Tarjeta'
-        : paymentMain === 'transfer'
-          ? 'Transferencia'
-          : 'Contra entrega'
     generateVoucherPDF({
       orderId,
       customerName: form.name,
@@ -160,22 +173,15 @@ export default function CheckoutPage() {
         month: 'long',
         day: 'numeric',
       }),
-      paymentMethod: mainLabel,
+      paymentMethod: paymentLabel(orderSnapshot.paymentMain),
       paymentDetail: orderSnapshot.paymentSub,
     })
   }
 
   const handleSendEmail = async () => {
     if (!orderSnapshot) return
-    
+
     setIsSendingEmail(true)
-    const mainLabel =
-      paymentMain === 'card'
-        ? 'Tarjeta'
-        : paymentMain === 'transfer'
-          ? 'Transferencia'
-          : 'Contra entrega'
-          
     try {
       const pdfBase64 = generateVoucherPDF({
         orderId,
@@ -189,9 +195,9 @@ export default function CheckoutPage() {
           month: 'long',
           day: 'numeric',
         }),
-        paymentMethod: mainLabel,
+        paymentMethod: paymentLabel(orderSnapshot.paymentMain),
         paymentDetail: orderSnapshot.paymentSub,
-      }, false) // false = return base64 instead of download
+      }, false) // false = retorna base64
 
       const res = await fetch('/api/send-voucher', {
         method: 'POST',
@@ -200,12 +206,12 @@ export default function CheckoutPage() {
           email: form.email,
           name: form.name,
           orderId,
-          pdfBase64
-        })
+          pdfBase64,
+        }),
       })
 
       if (!res.ok) throw new Error('Error enviando el correo')
-      
+
       setEmailSent(true)
       toast.success(`✅ Voucher enviado a ${form.email}`)
     } catch (error) {
@@ -216,6 +222,7 @@ export default function CheckoutPage() {
     }
   }
 
+  // ── Carrito vacío ────────────────────────────────────────────────────────────
   if (items.length === 0 && status === 'idle') {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center px-4">
@@ -223,7 +230,10 @@ export default function CheckoutPage() {
           <div className="text-6xl">🛒</div>
           <h2 className="text-2xl font-bold text-white">Tu carrito está vacío</h2>
           <p className="text-gray-500">Agrega productos antes de hacer checkout</p>
-          <Link href="/productos" className="inline-flex items-center justify-center bg-violet-600 hover:bg-violet-500 text-white font-medium px-4 py-2 rounded-md transition-colors">
+          <Link
+            href="/productos"
+            className="inline-flex items-center justify-center bg-violet-600 hover:bg-violet-500 text-white font-medium px-4 py-2 rounded-md transition-colors"
+          >
             <ArrowLeft className="mr-2 w-4 h-4" /> Ver Productos
           </Link>
         </div>
@@ -231,23 +241,20 @@ export default function CheckoutPage() {
     )
   }
 
+  // ── Pantalla de éxito ────────────────────────────────────────────────────────
   if (status === 'success') {
     const paid = orderSnapshot?.total ?? 0
-    const paymentHuman =
-      orderSnapshot?.paymentMain === 'card'
-        ? 'Tarjeta'
-        : orderSnapshot?.paymentMain === 'transfer'
-          ? 'Transferencia'
-          : 'Contra entrega'
+    const paymentHuman = paymentLabel(orderSnapshot?.paymentMain ?? 'transfer')
+
     return (
       <div className="min-h-screen flex items-center justify-center px-4 py-24">
         <div className="max-w-lg w-full" style={{ fontFamily: 'Outfit, sans-serif' }}>
-          {/* Header success banner */}
+          {/* Card principal */}
           <div className="rounded-3xl overflow-hidden border border-white/10" style={{ background: 'rgba(10,10,20,0.85)', backdropFilter: 'blur(24px)' }}>
             {/* Top gradient bar */}
             <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #6d28d9, #10b981, #6d28d9)' }} />
 
-            {/* Check icon + title */}
+            {/* Header con check */}
             <div className="px-8 pt-10 pb-6 text-center border-b border-white/5">
               <div className="relative inline-flex mb-6">
                 <div className="absolute inset-0 rounded-full animate-ping" style={{ background: 'rgba(16,185,129,0.2)', animationDuration: '2s' }} />
@@ -261,15 +268,15 @@ export default function CheckoutPage() {
               </p>
             </div>
 
-            {/* Order info grid */}
+            {/* Info de la orden */}
             <div className="px-8 py-6 space-y-4">
-              {/* Order ID */}
+              {/* ID de orden */}
               <div className="rounded-2xl px-5 py-4" style={{ background: 'rgba(109,40,217,0.1)', border: '1px solid rgba(109,40,217,0.25)' }}>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-1">Número de orden</p>
                 <p className="text-2xl font-black tracking-widest" style={{ color: '#a78bfa', fontFamily: 'monospace' }}>{orderId}</p>
               </div>
 
-              {/* Total + Payment row */}
+              {/* Total + Pago */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-2xl px-4 py-4" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
                   <p className="text-[10px] uppercase tracking-[0.15em] text-gray-500 mb-1">Total pagado</p>
@@ -283,7 +290,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Email info */}
+              {/* Email */}
               <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                 <Mail className="w-4 h-4 flex-shrink-0" style={{ color: '#6b7280' }} />
                 <p className="text-sm text-gray-400">
@@ -293,7 +300,34 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Action buttons */}
+            {/* Preview del PDF */}
+            {pdfPreviewUrl ? (
+              <div className="px-8 pb-4">
+                <div className="rounded-2xl overflow-hidden border border-white/10">
+                  <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/5" style={{ background: 'rgba(109,40,217,0.08)' }}>
+                    <Eye className="w-3.5 h-3.5 text-violet-400" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400">Vista previa del voucher</p>
+                  </div>
+                  <iframe
+                    src={pdfPreviewUrl}
+                    title="Vista previa del voucher PDF"
+                    className="w-full"
+                    style={{ height: '320px', border: 'none', background: '#050506' }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="px-8 pb-4">
+                <div className="rounded-2xl border border-white/5 flex items-center justify-center" style={{ height: '80px', background: 'rgba(255,255,255,0.02)' }}>
+                  <div className="flex items-center gap-2 text-zinc-600">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-xs">Generando vista previa del PDF...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Botones de acción */}
             <div className="px-8 pb-8 space-y-3">
               <button
                 type="button"
@@ -308,6 +342,7 @@ export default function CheckoutPage() {
 
               <button
                 type="button"
+                id="send-email-voucher-btn"
                 onClick={handleSendEmail}
                 disabled={isSendingEmail || emailSent}
                 className="w-full inline-flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold transition-all active:scale-[0.98] disabled:cursor-not-allowed"
@@ -351,6 +386,7 @@ export default function CheckoutPage() {
     )
   }
 
+  // ── Formulario de checkout ───────────────────────────────────────────────────
   return (
     <div className="min-h-screen pt-24 pb-20 px-4">
       <div className="max-w-5xl mx-auto">
@@ -365,17 +401,29 @@ export default function CheckoutPage() {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
+          {/* Columna principal — formulario */}
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Info de contacto */}
               <div className="glass rounded-2xl p-6 space-y-5">
                 <h2 className="font-bold text-white text-lg">Información de contacto</h2>
 
+                {/* Si hay sesión activa, mostrar el email como badge (no editable) */}
+                {sessionEmail && (
+                  <div className="flex items-center gap-2 rounded-xl px-4 py-3 border border-indigo-500/20 bg-indigo-500/5">
+                    <Mail className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+                    <p className="text-sm text-gray-300">
+                      Autenticado como <span className="text-indigo-400 font-medium">{sessionEmail}</span>
+                    </p>
+                  </div>
+                )}
+
                 {[
                   { id: 'name', label: 'Nombre completo', placeholder: 'Juan García', type: 'text' },
-                  { id: 'email', label: 'Email', placeholder: 'juan@email.com', type: 'email' },
+                  ...(!sessionEmail ? [{ id: 'email', label: 'Email', placeholder: 'juan@email.com', type: 'email' }] : []),
                   { id: 'phone', label: 'Teléfono', placeholder: '+51 999 000 000', type: 'tel' },
                   { id: 'address', label: 'Dirección de entrega', placeholder: 'Calle, número, ciudad', type: 'text' },
-                ].filter(field => !(field.id === 'email' && sessionEmail)).map((field) => (
+                ].map((field) => (
                   <div key={field.id} className="space-y-1.5">
                     <Label htmlFor={field.id} className="text-gray-300 text-sm">
                       {field.label}
@@ -389,14 +437,14 @@ export default function CheckoutPage() {
                         setForm((f) => ({ ...f, [field.id]: e.target.value }))
                         setErrors((err) => ({ ...err, [field.id]: '' }))
                       }}
-                      className={`bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-violet-500 h-11 ${errors[field.id] ? 'border-red-500/60' : ''
-                        }`}
+                      className={`bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-violet-500 h-11 ${errors[field.id] ? 'border-red-500/60' : ''}`}
                     />
                     {errors[field.id] && <p className="text-xs text-red-400">{errors[field.id]}</p>}
                   </div>
                 ))}
               </div>
 
+              {/* Pago */}
               <div className="glass rounded-2xl p-6 space-y-4">
                 <h2 className="font-bold text-white text-lg">Pago</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -478,7 +526,7 @@ export default function CheckoutPage() {
                 <div className="rounded-xl border border-white/5 bg-white/[0.03] p-4">
                   <p className="text-center text-xs text-gray-500">
                     🔒 Pago seguro — la pasarela definitiva se integrará después. Método elegido:{' '}
-                    <span className="text-gray-300">{paymentLabel()}</span>
+                    <span className="text-gray-300">{paymentLabel(paymentMain)}: {paymentSub}</span>
                   </p>
                 </div>
               </div>
@@ -504,6 +552,7 @@ export default function CheckoutPage() {
             </form>
           </div>
 
+          {/* Columna lateral — resumen */}
           <div className="space-y-4">
             <div className="glass rounded-2xl p-6 sticky top-24">
               <h2 className="font-bold text-white text-lg mb-4 flex items-center gap-2">
